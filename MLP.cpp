@@ -29,6 +29,7 @@ b2.random().subtract(.5);
 
 
 
+
 // BLA::Matrix<3, 3, float> jacobian(BLA::Matrix<3,1, float> p, 
 //                                   BLA::Matrix<3,1, float> tether_lengths, 
 //                                   BLA::Matrix<3, 3, float> teth_anchor, 
