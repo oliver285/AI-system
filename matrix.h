@@ -156,7 +156,7 @@ public:
 // Inverse matrix using Gauss-Jordan elimination
 
 
-Matrix<row, col> Matrix<row, col>::invert(const Matrix<row, col>& input) {
+Matrix<row, col> invert(const Matrix<row, col>& input) {
     Matrix<row, col> A = input;
     Matrix<row, col> I;
 

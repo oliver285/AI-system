@@ -9,9 +9,9 @@ int main() {
     auto random_mat = Matrix<2, 2>::random();
     random_mat.print();
 
-    Matrix<2,2> identity;
-    identity=random_mat.invert(random_mat);
-    identity.print();
+    // Matrix<2,2> identity;
+    // identity=random_mat.invert(random_mat);
+    // identity.print();
 
     return 0;
 }
