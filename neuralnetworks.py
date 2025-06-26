@@ -6,6 +6,7 @@ import pandas as pd
 # =======================
 # Neural Network Functions
 # =======================
+# simple feedforward neural network (also known as a multilayer perceptron or MLP)
 def init_params():
     W1 = np.random.randn(10, 784) * np.sqrt(2 / 784)
     W2 = np.random.randn(2, 10) * np.sqrt(2 / 10)
