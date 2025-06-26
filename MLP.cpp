@@ -11,7 +11,7 @@ class MLP {
         Matrix<10, 784> Z1, A1,DZ1;
         Matrix<2, 784> Z2, A2, DZ2;
     
-        double alpha;
+        // double alpha;
         uint8_t num_classes;
     
     public:
@@ -88,9 +88,61 @@ class MLP {
         
             // Optional: scale by learning rate and batch size if needed
         }
+
+void update_params(int alpha){
+W1.subtract_scalar(dW1.multiply_scalar(alpha));
+b1.subtract_scalar(db1.multiply_scalar(alpha));
+W2.subtract_scalar(dW2.multiply_scalar(alpha));
+b2.subtract_scalar(db2.multiply_scalar(alpha));
+
+
+}
+
+Matrix<1, 784> get_predictions(const Matrix<2, 784>& A) {
+    Matrix<1, 784> argmax;
+
+    for (uint16_t col = 0; col < 784; ++col) {
+        double max_val = A.data[0][col];
+        int max_idx = 0;
+
+        for (uint16_t row = 1; row < 2; ++row) {
+            if (A.data[row][col] > max_val) {
+                max_val = A.data[row][col];
+                max_idx = row;
+            }
+        }
+
+        argmax.data[0][col] = max_idx;
+    }
+
+    return argmax;
+}
+
+double get_accuracy(const Matrix<1, 784>& A, const Matrix<1, 784>& B) {
+    double accuracy = 0;
+
+    for (uint16_t i = 0; i < 784; ++i) {
+        if (A.data[0][i] == B.data[0][i]) {
+            accuracy++;
+        }
+    }
+
+    return accuracy / 784.0;
+}
+
+void gradient_descent(){
+
+
+    
+}
+
+
+
         
 
     };
+
+
     
 
 
