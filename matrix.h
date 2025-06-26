@@ -14,6 +14,16 @@ public:
     // Constructor
     Matrix() : rows(row), cols(col), data(row, std::vector<double>(col, 0)) {}
 
+
+
+
+    Matrix<row, col> operator+(const Matrix<row, col>& other) const {
+        Matrix<row, col> result;
+        for (int i = 0; i < row; ++i)
+            for (int j = 0; j < col; ++j)
+                result.data[i][j] = data[i][j] + other.data[i][j];
+        return result;
+    }
     // Fill the matrix with a specific value
     void fill(double val) {
         for (uint16_t i = 0; i < rows; ++i)
@@ -94,6 +104,19 @@ public:
         return total;
     }
 
+    static Matrix<row, col>  sum2() const {
+     Matrix<row, col> total = 0;
+        for (int i = 0; i < row; ++i) {
+            for (int j = 0; j < col; ++j) {
+                for (int k = 0; k < col; ++k) {
+                    total[i][j] += data[k][j];
+            }
+
+            
+        }
+        return total;
+    }
+
     // Softmax function for a matrix
     static Matrix<row, col> softmax(const Matrix<row, col>& A) {
         Matrix<row, col> max_value = max(A);
@@ -108,6 +131,22 @@ public:
         return result;
     }
 
+
+
+    static Matrix<row, col> T(const Matrix<row, col>& A){
+        Matrix<row, col> Transpose;
+        for (int i = 0; i < row; ++i) {
+            for (int j = 0; j < col; ++j) {
+
+Transpose[i][j] = Transpose[col-i][row-i];
+
+
+
+
+
+            }
+        }
+    }
     // Helper method to compute the max value in the matrix
     static Matrix<row, col> max(const Matrix<row, col>& A) {
         double max_val = A.data[0][0];
@@ -126,6 +165,20 @@ public:
             }
         }
         return max_value;
+    }
+
+    int min(const Matrix<row, col>& A) {
+        double min = 9999;
+      int min_val;
+        for (int i = 0; i < row; ++i) {
+            for (int j = 0; j < col; ++j) {
+                if (A.data[i][j] < min) {
+                    min_val = A.data[i][j];
+                }
+            }
+        }
+  
+        return min_val;
     }
 
     // Print the matrix
@@ -199,7 +252,7 @@ Matrix<row, col> invert(const Matrix<row, col>& input) {
 
     return I;
 } 
-
+    }
 
 };
 
