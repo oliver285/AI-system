@@ -5,13 +5,15 @@
 #include <stdexcept>
 #include <algorithm>
 
-template <int rows, int cols>
+template <int rows, int cols = -1>  // cols=-1 means dynamic
 class Matrix {
-public:
+    int dynamic_cols;  // Only used if cols==-1
     std::vector<std::vector<double>> data;
-
-    // Constructor
-    Matrix() : data(rows, std::vector<double>(cols, 0)) {}
+    
+public:
+    // Constructor for dynamic columns
+    Matrix(int c = 1) : dynamic_cols(cols == -1 ? c : cols), 
+                       data(rows, std::vector<double>(dynamic_cols)) {}
 
     // Random initialization with scaling
     static Matrix<rows, cols> random() {
