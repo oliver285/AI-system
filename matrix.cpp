@@ -2,20 +2,34 @@
 #include "matrix.h"
 int main() {
     // Example usage
-    Matrix<2,2> mat;
-    mat.fill(5.0);
-    mat.print();
+    // Matrix<2,2> mat;
+    // mat.fill(5.0);
+    // mat.print();
 
-    auto random_mat = Matrix<2, 2>::random();
-    random_mat.print();
+    // auto random_mat = Matrix<2, 2>::random();
+    // random_mat.print();
 
-    // Matrix<2,2> identity;
-    // identity=random_mat.invert(random_mat);
-    // identity.print();
+// Static matrices
+Matrix<2,3> m1;
+m1=Matrix<2,3>::random();
+// m1.print();
+// m1.random();
+auto m1_t = m1.transpose();  // 3x2 matrix
 
-    return 0;
+// m1_t.print();
+// Dynamic matrices 
+Matrix<2> m2(3); 
+m2.print();  // 3x2 // 2x3
+auto m2_t = m2.transpose();
+m2.print();  // 3x2
+
+// Operations
+auto m3 = m1 + m1;  // element-wise
+auto m4 = Matrix<2,3>::multiply(m1, m1_t);  // 2x2 result
+m3.print();
+m4.print();
+return 0;
 }
-// //     Matrix<2, 2> A;
 // //     A.fill(2);
 // //     std::cout << "Matrix A:\n";
 // //     A.print();
