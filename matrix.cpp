@@ -1,35 +1,25 @@
-// // Example usage:
 #include "matrix.h"
+#include <iostream>
+
 int main() {
-    // Example usage
-    // Matrix<2,2> mat;
-    // mat.fill(5.0);
-    // mat.print();
-
-    // auto random_mat = Matrix<2, 2>::random();
-    // random_mat.print();
-
-// Static matrices
-Matrix<2,3> m1;
-m1=Matrix<2,3>::random();
-// m1.print();
-// m1.random();
-auto m1_t = m1.transpose();  // 3x2 matrix
-
-// m1_t.print();
-// Dynamic matrices 
-Matrix<2> m2(3); 
-m2.print();  // 3x2 // 2x3
-// m4.print();  // 2x2 result
-auto m2_t = m2.transpose();
-m2_t.print();  // 3x2
-auto m4 = Matrix<2,3>::multiply(m1, m1_t);
-// Operations
-auto m3 = m1 + m1;  // element-wise
-// auto m4 = Matrix<2,3>::multiply(m1, m1_t);  // 2x2 result
-m3.print();
-m4.print();
-return 0;
+    // Create and print random matrix
+    Matrix mat3 = Matrix::random(3, 3);
+    std::cout << "Original matrix:\n";
+    mat3.print();
+    
+    // Test transpose
+    Matrix transposed = mat3.transpose();
+    std::cout << "\nTransposed matrix:\n";
+    transposed.print();
+    
+    // Verify multiplication
+    Matrix mat(3, 3);
+    mat.fill(2);
+    Matrix mat2 = Matrix::multiply(mat, mat3);
+    std::cout << "\nMultiplication result:\n";
+    mat2.print();
+    
+    return 0;
 }
 // //     A.fill(2);
 // //     std::cout << "Matrix A:\n";
