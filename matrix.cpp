@@ -20,12 +20,13 @@ auto m1_t = m1.transpose();  // 3x2 matrix
 // Dynamic matrices 
 Matrix<2> m2(3); 
 m2.print();  // 3x2 // 2x3
+// m4.print();  // 2x2 result
 auto m2_t = m2.transpose();
-m2.print();  // 3x2
-
+m2_t.print();  // 3x2
+auto m4 = Matrix<2,3>::multiply(m1, m1_t);
 // Operations
 auto m3 = m1 + m1;  // element-wise
-auto m4 = Matrix<2,3>::multiply(m1, m1_t);  // 2x2 result
+// auto m4 = Matrix<2,3>::multiply(m1, m1_t);  // 2x2 result
 m3.print();
 m4.print();
 return 0;
