@@ -125,6 +125,7 @@ Matrix subtract_scalar(double scalar) const {
     return result;
 }
 
+
  // Matrix multiplication with proper access
  
  static Matrix multiply(const Matrix& A, const Matrix& B) {
@@ -295,7 +296,20 @@ static Matrix sum_cols(const Matrix& A) {
        }
     
     // set(i,j,value);
-                
+     
+    
+    }
+
+    void I(){
+
+        fill(0);
+        for (size_t i = 0; i < rows; ++i){
+            for (size_t j = 0; j < cols; ++j) {
+            if(i==j) (*this)(i,j)=1;
+
+            }
+        }
+
     }
 
     // Print matrix

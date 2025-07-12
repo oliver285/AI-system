@@ -18,7 +18,12 @@ int main() {
     Matrix mat2 = Matrix::multiply(mat, mat3);
     std::cout << "\nMultiplication result:\n";
     mat2.print();
-    
+    Matrix mat4(3,3);
+    mat4.I();
+    mat2 = Matrix::multiply(mat4,mat2);
+    std::cout<<"\n Eye Matrix Result:\n";
+    mat2.print();
+
     return 0;
 }
 // //     A.fill(2);
