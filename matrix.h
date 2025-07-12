@@ -323,6 +323,25 @@ static Matrix sum_cols(const Matrix& A) {
         }
     }
 
+    Matrix hadamard_product(const Matrix& A) const {
+        // Check for matching dimensions
+        if (rows != A.rows || cols != A.cols) {
+            throw std::invalid_argument(
+                "Matrix dimensions must match for Hadamard product. " +
+                std::to_string(rows) + "x" + std::to_string(cols) + " vs " +
+                std::to_string(A.rows) + "x" + std::to_string(A.cols)
+            );
+        }
+    
+        Matrix result(rows, cols);
+        for (size_t i = 0; i < rows; ++i) {
+            for (size_t j = 0; j < cols; ++j) {
+                result(i, j) = (*this)(i, j) * A(i, j);
+            }
+        }
+        return result;
+    }
+
 
 };
 
