@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 #include <filesystem>
+#include <fstream>
+#include <string>
 // #include <random>
 #include <chrono>
 // #include <algorithm>
@@ -10,14 +12,15 @@ class image_processor {
         // Add these declarations in your class definition
         Matrix load_images(const std::string& folder_path);
         Matrix load_labels(const std::string& folder_path, int label);
-        
+        uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
+        image_processor();
+        ~image_processor();
     private:
         // Helper functions
         std::vector<std::filesystem::path> get_valid_image_files(const std::string& folder_path);
-        void load_image_data(const std::vector<std::filesystem::path>& files, Matrix& output);
+        void load_image_data(const std::vector<std::string>& files, Matrix& output);
         // Constructor/Destructor
-        image_processor();
-        ~image_processor();
+ 
     
         // Core Methods
         cv::Mat load_image(const std::string& image_path);

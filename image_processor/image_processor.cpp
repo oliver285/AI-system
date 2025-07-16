@@ -95,7 +95,7 @@ Matrix image_processor::flatten_image(const cv::Mat& img) {
 
 // Load only images (without labels)
 Matrix image_processor::load_images(const std::string& folder_path) {
-    std::vector<std::filesystem::path> valid_files = get_valid_image_files(folder_path);
+    std::vector<std::filesystem::path> valid_files = static_cast<std::filesystem::path>(folder_path); //std::filesystem::path
     Matrix images(valid_files.size(), IMG_WIDTH * IMG_HEIGHT);
     
     load_image_data(valid_files, images);
@@ -136,19 +136,22 @@ std::vector<std::filesystem::path> image_processor::get_valid_image_files(
 
 // Helper function to load image data
 void image_processor::load_image_data(
-    const std::vector<std::filesystem::path>& files,
+ 
+    const std::vector<std::string>& files,
     Matrix& output) {
     
     for (size_t i = 0; i < files.size(); ++i) {
         try {
-            cv::Mat img = load_image(files[i].string());
+            cv::Mat img = load_image(files[i]);
             cv::Mat processed_img = preprocess_image(img);
             Matrix flattened = flatten_image(processed_img);
             
-            for (size_t col = 0; col < flattened.size(); ++col) {
-                output(i, col) = flattened.data[col];
-            }
-        } catch (const std::exception& e) {
+            
+            for (size_t col = 0; col < flattened.col_count(); ++col) {
+                output(i, col) = flattened.no_bounds_check(col);
+            
+        } 
+    }catch (const std::exception& e) {
             std::cerr << "Error processing " << files[i] << ": " << e.what() << '\n';
             // Fill with zeros if error occurs
             for (size_t col = 0; col < output.col_count(); ++col) {
