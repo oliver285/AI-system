@@ -1,6 +1,7 @@
 #include "image_processor.h"
 
-
+image_processor::image_processor() = default;
+image_processor::~image_processor() = default;
 cv::Mat image_processor::load_image(const std::string& image_path) {
     // Load image in grayscale
     cv::Mat img = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
@@ -95,11 +96,31 @@ Matrix image_processor::flatten_image(const cv::Mat& img) {
 
 // Load only images (without labels)
 Matrix image_processor::load_images(const std::string& folder_path) {
-    std::vector<std::filesystem::path> valid_files = static_cast<std::filesystem::path>(folder_path); //std::filesystem::path
+    std::vector<std::filesystem::path> valid_files = get_valid_image_files(folder_path);
     Matrix images(valid_files.size(), IMG_WIDTH * IMG_HEIGHT);
     
-    load_image_data(valid_files, images);
+    // Convert paths to strings
+    // std::vector<std::string> file_paths;
+    // file_paths.reserve(valid_files.size()); // Pre-allocate memory
+    int count=0;
+    for (const auto& path : valid_files) {
+        // file_paths.push_back(path.string()); // Convert each path to string
+        load_image_data(path.string(), images,count);
+        count++;
+    }
+    
+    // load_image_data(file_paths, images); // Now pass the vector of strings
     return images;
+}
+
+
+Matrix image_processor::load_dataset(const std::string& folder_path){
+
+   
+    
+    return load_images(folder_path);
+   
+
 }
 
 // Load only labels
@@ -136,28 +157,36 @@ std::vector<std::filesystem::path> image_processor::get_valid_image_files(
 
 // Helper function to load image data
 void image_processor::load_image_data(
+    // std::vector<std::filesystem::path> valid_files = get_valid_image_files(folder_path);
+    // Matrix images(valid_files.size(), IMG_WIDTH * IMG_HEIGHT);
+    // // Convert paths to strings
+    // std::vector<std::string> file_paths;
+    // file_paths.reserve(valid_files.size()); // Pre-allocate memory
+
+
+    const std::string folder_path,Matrix& output,int i) {
+        
  
-    const std::vector<std::string>& files,
-    Matrix& output) {
-    
-    for (size_t i = 0; i < files.size(); ++i) {
         try {
-            cv::Mat img = load_image(files[i]);
+
+            cv::Mat img = load_image(folder_path);
+             // const std::vector<std::string>& files
+    // Matrix img_data = load_images(folder_path);
             cv::Mat processed_img = preprocess_image(img);
             Matrix flattened = flatten_image(processed_img);
             
             
-            for (size_t col = 0; col < flattened.col_count(); ++col) {
+            for (size_t col = 0; col < flattened.size(); ++col) { 
                 output(i, col) = flattened.no_bounds_check(col);
             
         } 
     }catch (const std::exception& e) {
-            std::cerr << "Error processing " << files[i] << ": " << e.what() << '\n';
+            std::cerr << "Error processing " << folder_path << ": " << e.what() << '\n';
             // Fill with zeros if error occurs
             for (size_t col = 0; col < output.col_count(); ++col) {
                 output(i, col) = 0.0f;
             }
-        }
+        
     }
 }
 
@@ -192,7 +221,7 @@ void image_processor::save_to_csv(const Matrix& dataset, const std::string& csv_
     file.close();
 }
 
-void shuffle_dataset(Matrix& images, Matrix& labels) {
+void image_processor::shuffle_dataset(Matrix& images, Matrix& labels) {
     if (images.row_count() != labels.row_count()) {
         throw std::invalid_argument("Images and labels must have same number of rows");
     }
@@ -220,9 +249,11 @@ int main() {
 
     try {
         // Load datasets
-        auto [cracked_images, cracked_labels] = processor.load_dataset("datasets/testing/data/Cracked", 1);
-        auto [noncracked_images, noncracked_labels] = processor.load_dataset("datasets/testing/data/NonCracked", 0);
-
+        auto cracked_images = processor.load_dataset("../datasets/testing/data/Cracked");
+        auto cracked_labels = processor.load_labels("../datasets/testing/data/Cracked", 1);
+        auto noncracked_images = processor.load_dataset("../datasets/testing/data/NonCracked");
+        auto  noncracked_labels = processor.load_labels("../datasets/testing/data/NonCracked", 0);
+        uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
         // Combine images and labels
         Matrix all_images(cracked_images.row_count() + noncracked_images.row_count(), 
                          IMG_WIDTH * IMG_HEIGHT);
@@ -259,3 +290,4 @@ int main() {
     return 0;
 }
   
+
