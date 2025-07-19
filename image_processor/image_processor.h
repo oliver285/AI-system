@@ -15,10 +15,14 @@ class image_processor {
         uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
         image_processor();
         ~image_processor();
+        Matrix load_dataset(const std::string& folder_path);
+        void load_image_data(const std::string files, Matrix& output,int count);
+        void shuffle_dataset(Matrix& images, Matrix& labels);
+        void save_to_csv(const Matrix& dataset, const std::string& csv_path);
     private:
         // Helper functions
         std::vector<std::filesystem::path> get_valid_image_files(const std::string& folder_path);
-        void load_image_data(const std::vector<std::string>& files, Matrix& output);
+       
         // Constructor/Destructor
  
     
@@ -26,11 +30,11 @@ class image_processor {
         cv::Mat load_image(const std::string& image_path);
         cv::Mat preprocess_image(const cv::Mat& img);
         Matrix flatten_image(const cv::Mat& img);
-        Matrix load_dataset(const std::string& folder_path, int label);
+        // Matrix load_dataset(const std::string& folder_path, int label);
     
         // Utility Methods
-        void save_to_csv(const Matrix& dataset, const std::string& csv_path);
-        void shuffle_dataset(Matrix& dataset);
+        
+     
     };
 
 // def predict_new_image(image_path, W1, b1, W2, b2):
@@ -62,3 +66,4 @@ class image_processor {
 // all_data = np.array(cracked + not_cracked)
 // np.random.shuffle(all_data)
 // pd.DataFrame(all_data).to_csv("crack_dataset.csv", index=False)
+
