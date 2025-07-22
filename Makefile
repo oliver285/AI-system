@@ -1,0 +1,1 @@
+g++ -std=c++17 image_processor.cpp -o output `pkg-config --cflags --libs opencv4`
