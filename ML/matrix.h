@@ -31,7 +31,13 @@ public:
 // Accessors
 size_t row_count() const  { return rows; }
 size_t col_count() const  { return cols; }
-
+size_t size() const {return data.size();}
+const double& no_bounds_check(size_t i) const{
+    return data[i];
+}
+double& no_bounds_check(size_t i){
+    return data[i];
+}
 
 // double get(int i, int j) const { 
 //                         if (i < 0 || i >= row_count() || j < 0 || j >= col_count())
