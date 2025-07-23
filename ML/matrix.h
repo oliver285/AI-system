@@ -11,7 +11,7 @@ class Matrix {
     std::vector<double> data;
     
 public:
-   
+Matrix(){}
     Matrix(size_t r, size_t c) : rows(r), cols(c), data(r * c) {}  // Fixed
   
   // Access element (i,j)
@@ -63,6 +63,16 @@ static Matrix random(size_t r, size_t c) {
     
     return mat;
 }
+
+double frobenius_norm() const {
+    double val = 0;
+    for (size_t i = 0; i < size(); ++i) {
+        double element = no_bounds_check(i);
+        val += element * element;
+    }
+    return std::sqrt(val);  // CORRECT: sqrt(sum of squares)
+}
+
 
 
     // Element-wise operations
@@ -166,7 +176,7 @@ Matrix subtract_scalar(double scalar) const {
 Matrix transpose() const {
     
         // Static case
-        Matrix result(rows,cols);
+        Matrix result(cols,rows);
         for (size_t i = 0; i < rows; ++i)
         for (size_t j = 0; j < cols; ++j)
 
@@ -274,6 +284,38 @@ double sum() const {
     }
     
     return total;
+}
+
+double min() const {
+    if (size() == 0) return 0.0;
+    double min_val = no_bounds_check(0);
+    for (size_t i = 1; i < size(); i++) {
+        if (no_bounds_check(i) < min_val) {
+            min_val = no_bounds_check(i);
+        }
+    }
+    return min_val;
+}
+
+double max() const {
+    if (size() == 0) return 0.0;
+    double max_val = no_bounds_check(0);
+    for (size_t i = 1; i < size(); i++) {
+        if (no_bounds_check(i) > max_val) {
+            max_val = no_bounds_check(i);
+        }
+    }
+    return max_val;
+}
+
+double mean(){
+double mean=0;
+for(size_t i=0;i<size();i++){
+mean+=no_bounds_check(i);
+}
+
+return mean/size();
+
 }
 
  // Column-wise sum (optimized for batch processing)

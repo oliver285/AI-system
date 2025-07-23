@@ -1,36 +1,45 @@
 
-#include "matrix.h"
-// #include <random>
+#include "MLP.h"
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
+{
+    // Initialize weights and biases with proper dimensions
+    W1 = Matrix(hidden_size, input_size);
+    W2 = Matrix(output_size, hidden_size);
+    b1 = Matrix(hidden_size, 1);
+    b2 = Matrix(output_size, 1);
 
-class MLP {
-    private:
-        // Weights (unchanged)
-        Matrix W1, W2, dW1, dW2;  // W1: (10, 784), W2: (2, 10)
-        Matrix b1, b2, db1,db2;             // b1: (10, 1),   b2: (2, 1)
-    
-        // Activations (now batch matrices)
-        Matrix Z1, A1, dZ1;  // Z1, A1: (10, batch_size)
-        Matrix Z2, A2, dZ2;  // Z2, A2: (2, batch_size)
-    
-        int batch_size;
-    
-    public:
-    MLP(size_t input_size, size_t hidden_size, size_t output_size)
-    : W1(hidden_size, input_size),
-      W2(output_size, hidden_size),
-      b1(hidden_size, 1),
-      b2(output_size, 1) {
-    // Initialize weights (He initialization)
+    // He initialization
     double scale1 = std::sqrt(2.0 / input_size);
     double scale2 = std::sqrt(2.0 / hidden_size);
     
     W1 = Matrix::random(hidden_size, input_size).multiply_scalar(scale1);
     W2 = Matrix::random(output_size, hidden_size).multiply_scalar(scale2);
-    b1.fill(0.1);  // Small constant bias initialization
-    b2.fill(0.1);
+    b1.fill(0);
+    b2.fill(0);
 }
+
+double MLP::compute_loss(const Matrix& Y, const Matrix& A2) {
+    Matrix one_hot_Y = one_hot(Y, A2.row_count());
+    double loss = 0.0;
+    for (size_t i = 0; i < A2.col_count(); ++i) {
+        for (size_t j = 0; j < A2.row_count(); ++j) {
+            double y = one_hot_Y(j, i);
+            double a = A2(j, i);
+            if (y > 0) {
+                loss -= std::log(std::max(a, 1e-10));  // avoid log(0)
+            }
+        }
+    }
+    return loss / A2.col_count();  // average over batch
+}
+
+
+
 // Forward pass for batch processing
-Matrix forward_prop(const Matrix& X) {
+Matrix MLP::forward_prop(const Matrix& X) {
     // X shape: (input_size, batch_size)
     // size_t batch_size = X.col_count();
     
@@ -57,7 +66,7 @@ Matrix forward_prop(const Matrix& X) {
     return A2;
 }
 
-Matrix one_hot(const Matrix& Y, size_t num_classes = 2) {
+Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
     // Validate input dimensions
     if (Y.row_count() != 1) {
         throw std::invalid_argument("Input Y must be a row vector of shape (1, batch_size)");
@@ -93,9 +102,12 @@ Matrix one_hot(const Matrix& Y, size_t num_classes = 2) {
         // }
 
 
-        void back_prop(const Matrix& X, const Matrix& Y) {
+        void MLP::back_prop(const Matrix& X, const Matrix& Y) {
+
+
             // Step 1: Convert Y to one-hot encoding
-            Matrix one_hot_Y = one_hot(Y);  // Shape: (2, batch_size)
+            Matrix one_hot_Y = one_hot(Y, A2.row_count());  // dynamically use number of classes
+
             
             // Step 2: dZ2 = A2 - one_hot_Y (output error)
             Matrix dZ2 = A2 - one_hot_Y;  // Element-wise subtraction
@@ -132,9 +144,20 @@ Matrix one_hot(const Matrix& Y, size_t num_classes = 2) {
                 }
                 db1(i, 0) = sum / batch_size;
             }
+// Add gradient diagnostics
+std::cout << "dZ2 range: " << dZ2.min() << " to " << dZ2.max() << "\n";
+std::cout << "dZ1 range: " << dZ1.min() << " to " << dZ1.max() << "\n";
+std::cout << "ReLU' active: " 
+          << dZ1_relu.mean() * 100.0 << "%\n";
+
         }
 
-        void update_params(double learning_rate) {  // Changed int to double
+        void MLP::update_params(double learning_rate) {  // Changed int to double
+
+               // Add debug prints
+    std::cout << "Updating params (lr=" << learning_rate << ")\n";
+    std::cout << "dW1 norm: " << dW1.frobenius_norm() << "\n";
+    std::cout << "dW2 norm: " << dW2.frobenius_norm() << "\n";
             // Update weights and biases using gradients
             W1 = W1 - dW1.multiply_scalar(learning_rate);
             b1 = b1 - db1.multiply_scalar(learning_rate);
@@ -142,32 +165,41 @@ Matrix one_hot(const Matrix& Y, size_t num_classes = 2) {
             b2 = b2 - db2.multiply_scalar(learning_rate);
         }
 
-        Matrix get_predictions(const Matrix& A) {
-            // A should be a (num_classes, batch_size) matrix of probabilities
-            size_t num_classes = A.row_count();
-            size_t batch_size = A.col_count();
+        // Matrix MLP::get_predictions(const Matrix& A) {
+        //     // A should be a (num_classes, batch_size) matrix of probabilities
+        //     size_t num_classes = A.row_count();
+        //     size_t batch_size = A.col_count();
             
-            Matrix predictions(1, batch_size);  // Will store class indices
+        //     Matrix predictions(1, batch_size);  // Will store class indices
         
-            for (size_t col = 0; col < batch_size; ++col) {
-                double max_val = A(0, col);
-                int max_idx = 0;
+        //     for (size_t col = 0; col < batch_size; ++col) {
+        //         double max_val = A(0, col);
+        //         int max_idx = 0;
         
-                // Find class with highest probability
-                for (size_t row = 1; row < num_classes; ++row) {
-                    if (A(row, col) > max_val) {
-                        max_val = A(row, col);
-                        max_idx = row;
-                    }
-                }
+        //         // Find class with highest probability
+        //         for (size_t row = 1; row < num_classes; ++row) {
+        //             if (A(row, col) > max_val) {
+        //                 max_val = A(row, col);
+        //                 max_idx = row;
+        //             }
+        //         }
         
-                predictions(0, col) = max_idx;
+        //         predictions(0, col) = max_idx;
+        //     }
+        
+        //     return predictions;
+        // }
+
+        Matrix MLP::get_predictions(const Matrix& A) {
+            Matrix predictions(1, A.col_count());
+            for (size_t col = 0; col < A.col_count(); ++col) {
+                // Use 0.5 threshold for binary classification
+                predictions(0, col) = (A(1, col) > 0.5) ? 1.0 : 0.0;
             }
-        
             return predictions;
         }
 
-        double get_accuracy(const Matrix& predictions, const Matrix& labels) {
+        double MLP::get_accuracy(const Matrix& predictions, const Matrix& labels) {
             // Validate input dimensions
             if (predictions.row_count() != 1 || labels.row_count() != 1 || 
                 predictions.col_count() != labels.col_count()) {
@@ -190,33 +222,124 @@ Matrix one_hot(const Matrix& Y, size_t num_classes = 2) {
             return static_cast<double>(correct_count) / batch_size;
         }
 
-void gradient_descent(const Matrix& X, const Matrix& Y, size_t iterations, double learning_rate) {
+        void shuffle_data(Matrix& X, Matrix& Y) {
+            size_t batch_size = X.col_count();
+            std::vector<size_t> indices(batch_size);
+            std::iota(indices.begin(), indices.end(), 0);
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(indices.begin(), indices.end(), g);
+        
+            Matrix X_shuffled(X.row_count(), batch_size);
+            Matrix Y_shuffled(Y.row_count(), batch_size);
+        
+            for (size_t i = 0; i < batch_size; ++i) {
+                size_t src_idx = indices[i];
+                for (size_t r = 0; r < X.row_count(); ++r) {
+                    X_shuffled(r, i) = X(r, src_idx);
+                }
+                Y_shuffled(0, i) = Y(0, src_idx);
+            }
+        
+            X = X_shuffled;
+            Y = Y_shuffled;
+        }
+
+
+        double MLP::cross_entropy_loss(const Matrix& Y_pred, const Matrix& Y_true) {
+            double loss = 0.0;
+            size_t batch_size = Y_pred.col_count();
+            
+            for (size_t i = 0; i < batch_size; ++i) {
+                int label = static_cast<int>(Y_true(0, i));
+                double prob = Y_pred(label, i);
+                loss += -std::log(std::max(prob, 1e-8));  // Avoid log(0)
+            }
+            return loss / batch_size;
+        }
+void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learning_rate) {
     double decay_rate = 0.01;  // Changed to double, more standard value
     Matrix predictions;
     double accuracy;
-    
+    double initial_lr=learning_rate;
+    double best_loss = std::numeric_limits<double>::max();
     for (size_t i = 0; i < iterations; ++i) {  // Better loop structure
+        shuffle_data(X, Y);
         // Forward propagation
         Matrix A2 = forward_prop(X);
         
         // Backpropagation
         back_prop(X, Y);
+           // Learning rate decay
+        //    double current_lr = initial_lr * (1.0 / (1.0 + decay_rate * i/10.0));
+        // Adaptive LR based on loss improvement
+        double current_lr = initial_lr * std::pow(0.95, i/10.0);
+        double current_loss = cross_entropy_loss(A2, Y);
+        if (current_loss < best_loss) {
+            best_loss = current_loss;
+        } else {
+            current_lr *= 0.8;  // Reduce LR on worsening loss
+        }
         
-        // Update parameters
-        update_params(learning_rate);
+        update_params(current_lr);
+    
+      
         
-        // Learning rate decay
-        learning_rate = learning_rate * (1.0 / (1.0 + decay_rate * i));
+        
+     
         
         // Print progress every 10 iterations
         if (i % 10 == 0) {
             predictions = get_predictions(A2);
             accuracy = get_accuracy(predictions, Y);
+            double loss = compute_loss(Y, A2);
+          
             std::cout << "Iteration: " << i 
                       << ", Accuracy: " << std::setprecision(4) << std::fixed << accuracy
                       << ", Learning Rate: " << learning_rate << std::endl;
+                      std::cout << "Loss: " << loss <<"\n";
         }
     }
+}
+
+
+// Add to the bottom of MLP.cpp
+int main() {
+    // Test with small dataset
+    const size_t input_size = 2;
+    const size_t hidden_size = 3;
+    const size_t output_size = 2;
+    const size_t batch_size = 4;
+
+    // Create MLP
+    MLP mlp(input_size, hidden_size, output_size);
+
+    // Create sample input (2 features, 4 samples)
+   // Create sample input with variation
+Matrix X(input_size, batch_size);
+X(0,0) = 0.1; X(1,0) = 0.2;
+X(0,1) = 0.9; X(1,1) = 0.8;
+X(0,2) = 0.1; X(1,2) = 0.9;
+X(0,3) = 0.9; X(1,3) = 0.1;  // Fill with sample data
+
+    // Create sample labels
+    Matrix Y(1, batch_size);
+    Y(0,0) = 0; Y(0,1) = 1; Y(0,2) = 0; Y(0,3) = 1;
+
+    // Train the network
+    mlp.gradient_descent(X, Y, 100, 0.1);
+
+    // Test prediction
+    Matrix output = mlp.forward_prop(X);
+    Matrix predictions = mlp.get_predictions(output);
+    
+    std::cout << "\nFinal predictions:\n";
+    predictions.print();
+    
+    double accuracy = mlp.get_accuracy(predictions, Y);
+    std::cout << "Final accuracy: " << accuracy << "\n";
+
+    return 0;
 }
 /* potential alternative metric once code has proven functional*/
 
@@ -360,7 +483,7 @@ void gradient_descent(const Matrix& X, const Matrix& Y, size_t iterations, doubl
 
         
 
-    };
+
 
 
     
