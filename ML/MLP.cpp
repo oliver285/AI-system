@@ -17,8 +17,8 @@ MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
     
     W1 = Matrix::random(hidden_size, input_size).multiply_scalar(scale1);
     W2 = Matrix::random(output_size, hidden_size).multiply_scalar(scale2);
-    b1.fill(0);
-    b2.fill(0);
+    b1.fill(0.1);
+    b2.fill(0.1);
 }
 
 double MLP::compute_loss(const Matrix& Y, const Matrix& A2) {
@@ -149,6 +149,11 @@ std::cout << "dZ2 range: " << dZ2.min() << " to " << dZ2.max() << "\n";
 std::cout << "dZ1 range: " << dZ1.min() << " to " << dZ1.max() << "\n";
 std::cout << "ReLU' active: " 
           << dZ1_relu.mean() * 100.0 << "%\n";
+             // Add gradient clipping after calculations
+    dW1 = dW1.clip(-1.0, 1.0);
+    dW2 = dW2.clip(-1.0, 1.0);
+    db1 = db1.clip(-1.0, 1.0);
+    db2 = db2.clip(-1.0, 1.0);
 
         }
 
@@ -159,10 +164,14 @@ std::cout << "ReLU' active: "
     std::cout << "dW1 norm: " << dW1.frobenius_norm() << "\n";
     std::cout << "dW2 norm: " << dW2.frobenius_norm() << "\n";
             // Update weights and biases using gradients
-            W1 = W1 - dW1.multiply_scalar(learning_rate);
-            b1 = b1 - db1.multiply_scalar(learning_rate);
-            W2 = W2 - dW2.multiply_scalar(learning_rate);
-            b2 = b2 - db2.multiply_scalar(learning_rate);
+            // Add momentum factor (0.9 is typical)
+    const double momentum = 0.9;
+    
+    // Update with momentum
+    W1 = W1 - dW1.multiply_scalar(learning_rate * momentum);
+    W2 = W2 - dW2.multiply_scalar(learning_rate * momentum);
+    b1 = b1 - db1.multiply_scalar(learning_rate * momentum);
+    b2 = b2 - db2.multiply_scalar(learning_rate * momentum);
         }
 
         // Matrix MLP::get_predictions(const Matrix& A) {
@@ -191,14 +200,28 @@ std::cout << "ReLU' active: "
         // }
 
         Matrix MLP::get_predictions(const Matrix& A) {
-            Matrix predictions(1, A.col_count());
-            for (size_t col = 0; col < A.col_count(); ++col) {
-                // Use 0.5 threshold for binary classification
-                predictions(0, col) = (A(1, col) > 0.5) ? 1.0 : 0.0;
+            size_t batch_size = A.col_count();
+            Matrix predictions(1, batch_size);
+            
+            for (size_t col = 0; col < batch_size; ++col) {
+                // For binary classification, compare class probabilities
+                if (A.row_count() == 2) {
+                    predictions(0, col) = (A(1, col) > A(0, col)) ? 1.0 : 0.0;
+                } else {
+                    // Multi-class: find max probability
+                    double max_val = A(0, col);
+                    size_t max_idx = 0;
+                    for (size_t row = 1; row < A.row_count(); ++row) {
+                        if (A(row, col) > max_val) {
+                            max_val = A(row, col);
+                            max_idx = row;
+                        }
+                    }
+                    predictions(0, col) = static_cast<double>(max_idx);
+                }
             }
             return predictions;
         }
-
         double MLP::get_accuracy(const Matrix& predictions, const Matrix& labels) {
             // Validate input dimensions
             if (predictions.row_count() != 1 || labels.row_count() != 1 || 
@@ -257,12 +280,15 @@ std::cout << "ReLU' active: "
             }
             return loss / batch_size;
         }
+
+
 void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learning_rate) {
     double decay_rate = 0.01;  // Changed to double, more standard value
     Matrix predictions;
     double accuracy;
     double initial_lr=learning_rate;
     double best_loss = std::numeric_limits<double>::max();
+    size_t no_improve = 0;
     for (size_t i = 0; i < iterations; ++i) {  // Better loop structure
         shuffle_data(X, Y);
         // Forward propagation
@@ -275,29 +301,31 @@ void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learn
         // Adaptive LR based on loss improvement
         double current_lr = initial_lr * std::pow(0.95, i/10.0);
         double current_loss = cross_entropy_loss(A2, Y);
-        if (current_loss < best_loss) {
+      // Early stopping with patience
+        if (current_loss < best_loss - 0.001) {
             best_loss = current_loss;
+            no_improve = 0;
         } else {
-            current_lr *= 0.8;  // Reduce LR on worsening loss
+            no_improve++;
+            if (no_improve >= 5) {
+                std::cout << "Early stopping at iteration " << i << "\n";
+                break;
+            }
+            // Reduce LR when loss plateaus
+            current_lr *= 0.5;
         }
         
         update_params(current_lr);
-    
-      
-        
-        
-     
-        
         // Print progress every 10 iterations
         if (i % 10 == 0) {
-            predictions = get_predictions(A2);
-            accuracy = get_accuracy(predictions, Y);
-            double loss = compute_loss(Y, A2);
-          
-            std::cout << "Iteration: " << i 
-                      << ", Accuracy: " << std::setprecision(4) << std::fixed << accuracy
-                      << ", Learning Rate: " << learning_rate << std::endl;
-                      std::cout << "Loss: " << loss <<"\n";
+            Matrix predictions = get_predictions(A2);
+            double accuracy = get_accuracy(predictions, Y);
+            std::cout << "Iter: " << i 
+                      << " | Loss: " << current_loss
+                      << " | Acc: " << accuracy
+                      << " | LR: " << current_lr
+                      << " | dW1: " << dW1.frobenius_norm()
+                      << " | dW2: " << dW2.frobenius_norm() << "\n";
         }
     }
 }
@@ -418,98 +446,4 @@ X(0,3) = 0.9; X(1,3) = 0.1;  // Fill with sample data
 //     }
 
 //     return history.back();
-// }
-
-// def predict_new_image(image_path, W1, b1, W2, b2):
-//     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-//     img = cv2.resize(img, (28, 28))
-//     img_flatten = img.flatten().reshape(-1, 1)
-//     _, _, _, A2 = forward_prop(W1, b1, W2, b2, img_flatten)
-//     prediction = get_predictions(A2)[0]
-//     label = "Cracked" if prediction == 1 else "Not Cracked"
-//     print(f"{image_path}: {label}")
-//     return label
-
-// # =======================
-// # Preprocessing Dataset
-// # =======================
-// def load_images_from_folder(folder, label, image_size=(28, 28)):
-//     data = []
-//     for filename in os.listdir(folder):
-//         img_path = os.path.join(folder, filename)
-//         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-//         if img is not None:
-//             img = cv2.resize(img, image_size)
-//             img_flatten = img.flatten()
-//             data.append(np.insert(img_flatten, 0, label))
-//     return data
-
-// cracked = load_images_from_folder("datasets/testing/data/Cracked", label=1)
-// not_cracked = load_images_from_folder("datasets/testing/data/NonCracked", label=0)
-// all_data = np.array(cracked + not_cracked)
-// np.random.shuffle(all_data)
-// pd.DataFrame(all_data).to_csv("crack_dataset.csv", index=False)
-
-// # =======================
-// # Load + Split Dataset
-// # =======================
-// data = pd.read_csv('crack_dataset.csv').to_numpy()
-// np.random.shuffle(data)
-// m, n = data.shape
-
-// if m < 200:
-//     split_idx = m // 5  # 20% dev set if small
-// else:
-//     split_idx = 100
-
-// data_dev = data[:split_idx].T
-// Y_dev = data_dev[0].astype(int)
-// X_dev = data_dev[1:n]
-
-// data_train = data[split_idx:].T
-// Y_train = data_train[0].astype(int)
-// X_train = data_train[1:n]
-
-// # =======================
-// # Train Model
-// # =======================
-// W1, b1, W2, b2 = gradient_descent(X_train, Y_train, iterations=100, alpha=0.1)
-
-// # Evaluate on Dev Set
-// _, _, _, A2_dev = forward_prop(W1, b1, W2, b2, X_dev)
-// accuracy_dev = get_accuracy(get_predictions(A2_dev), Y_dev)
-// print(f"Dev Set Accuracy: {accuracy_dev:.4f}")
-
-
-        
-
-
-
-
-    
-
-
-
-
-// BLA::Matrix<3, 3, float> jacobian(BLA::Matrix<3,1, float> p, 
-//                                   BLA::Matrix<3,1, float> tether_lengths, 
-//                                   BLA::Matrix<3, 3, float> teth_anchor, 
-//                                   BLA::Matrix<3, 3, float> offset) {
-//     BLA::Matrix<3, 3, float> J;
-//     double h = 1e-5;
-//     BLA::Matrix<3,1, float> p1, f1, f2;
-
-//     for (int i = 0; i < 3; i++) {
-//         p1 = p;
-//         p1(i) += h;
-//         f1 = equations(p1, teth_anchor, offset, tether_lengths);
-        
-//         p1(i) -= 2*h;
-//         f2 = equations(p1, teth_anchor, offset, tether_lengths);
-
-//         for (int j = 0; j < 3; j++) {
-//             J(j, i) = (f1(j) - f2(j)) / (2 * h);
-//         }
-//     }
-//     return J;
 // }

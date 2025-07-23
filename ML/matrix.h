@@ -64,13 +64,21 @@ static Matrix random(size_t r, size_t c) {
     return mat;
 }
 
+// Add to Matrix class
 double frobenius_norm() const {
     double val = 0;
-    for (size_t i = 0; i < size(); ++i) {
-        double element = no_bounds_check(i);
-        val += element * element;
+    for (size_t i = 0; i < data.size(); ++i) {
+        val += data[i] * data[i];
     }
-    return std::sqrt(val);  // CORRECT: sqrt(sum of squares)
+    return std::sqrt(val);
+}
+
+Matrix clip(double min_val, double max_val) const {
+    Matrix result(rows, cols);
+    for (size_t i = 0; i < data.size(); ++i) {
+        result.data[i] = std::max(min_val, std::min(data[i], max_val));
+    }
+    return result;
 }
 
 
