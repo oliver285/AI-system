@@ -4,21 +4,32 @@
 #include <iomanip>
 #include <cmath>
 MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
+    : W1(hidden_size, input_size),   // Correct: (hidden_size, input_size)
+      W2(output_size, hidden_size),  // Correct: (output_size, hidden_size)
+      b1(1, hidden_size),            // Changed to (1, hidden_size)
+      b2(1, output_size),            // Changed to (1, output_size)
+      vW1(hidden_size, input_size),
+      vW2(output_size, hidden_size),
+      vb1(1, hidden_size),           // Changed to (1, hidden_size)
+      vb2(1, output_size)            // Changed to (1, output_size)
 {
-    // Initialize weights and biases with proper dimensions
-    W1 = Matrix(hidden_size, input_size);
-    W2 = Matrix(output_size, hidden_size);
-    b1 = Matrix(hidden_size, 1);
-    b2 = Matrix(output_size, 1);
-
     // He initialization
-    double scale1 = std::sqrt(2.0 / input_size);
-    double scale2 = std::sqrt(2.0 / hidden_size);
+// In constructor:
+double scale1 = 0.1*std::sqrt(1.0 / (input_size + hidden_size));
+double scale2 = 0.1*std::sqrt(1.0 / (hidden_size + output_size));
     
     W1 = Matrix::random(hidden_size, input_size).multiply_scalar(scale1);
     W2 = Matrix::random(output_size, hidden_size).multiply_scalar(scale2);
-    b1.fill(0.1);
-    b2.fill(0.1);
+    
+    // Initialize biases to zero
+    b1.fill(0.0);
+    b2.fill(0.0);
+    
+    // Initialize velocities to zero
+    vW1.fill(0.0);
+    vW2.fill(0.0);
+    vb1.fill(0.0);
+    vb2.fill(0.0);
 }
 
 double MLP::compute_loss(const Matrix& Y, const Matrix& A2) {
@@ -46,23 +57,28 @@ Matrix MLP::forward_prop(const Matrix& X) {
     // Layer 1
     Z1 = Matrix::multiply(W1, X);  // (hidden_size, batch_size)
     // Broadcast bias addition
+// Replace manual broadcasting with:
+for (size_t j = 0; j < Z1.col_count(); ++j) {
     for (size_t i = 0; i < Z1.row_count(); ++i) {
-        for (size_t j = 0; j < Z1.col_count(); ++j) {
-            Z1(i, j) += b1(i, 0);
-        }
+        Z1(i, j) += b1(0, i);  // Use column index for bias
     }
-    A1 = Z1.RELU();
+}
+    // A1 = Z1.RELU();  
+    A1 = Z1.leaky_RELU(); // just multiplies by constant 
     
     // Layer 2
     Z2 = Matrix::multiply(W2, A1);  // (output_size, batch_size)
     // Broadcast bias addition
+ // Replace manual broadcasting with:
+for (size_t j = 0; j < Z2.col_count(); ++j) {
     for (size_t i = 0; i < Z2.row_count(); ++i) {
-        for (size_t j = 0; j < Z2.col_count(); ++j) {
-            Z2(i, j) += b2(i, 0);
-        }
+        Z2(i, j) += b2(0, i);  // Use column index for bias
     }
+}
     A2 = Matrix::softmax(Z2);
-    
+    // In forward_prop():
+std::cout << "Z1 range: " << Z1.min() << " to " << Z1.max() << "\n";
+std::cout << "Z2 range: " << Z2.min() << " to " << Z2.max() << "\n";
     return A2;
 }
 
@@ -107,8 +123,8 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
 
             // Step 1: Convert Y to one-hot encoding
             Matrix one_hot_Y = one_hot(Y, A2.row_count());  // dynamically use number of classes
-
             
+
             // Step 2: dZ2 = A2 - one_hot_Y (output error)
             Matrix dZ2 = A2 - one_hot_Y;  // Element-wise subtraction
             
@@ -117,18 +133,19 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
             dW2 = dW2.multiply_scalar(1.0 / batch_size);  // Average over batch
             
             // Step 4: db2 = mean of dZ2 across batch (column-wise sum)
-            db2 = Matrix(dZ2.row_count(), 1);
+            db2 = Matrix(1,dZ2.row_count());
             for (size_t i = 0; i < dZ2.row_count(); ++i) {
                 double sum = 0.0;
                 for (size_t j = 0; j < dZ2.col_count(); ++j) {
                     sum += dZ2(i, j);
                 }
-                db2(i, 0) = sum / batch_size;
+                db2( 0,i) = sum / batch_size;
             }
             
             // Step 5: dZ1 = (W2^T * dZ2) ⊙ ReLU'(Z1)
             Matrix dZ1_linear = Matrix::multiply(W2.transpose(), dZ2);
-            Matrix dZ1_relu = Z1.deriv_RELU();  // ReLU derivative
+            // Matrix dZ1_relu = Z1.deriv_RELU();  // ReLU derivative
+            Matrix dZ1_relu = Z1.deriv_leaky_RELU();
             Matrix dZ1 = dZ1_linear.hadamard_product(dZ1_relu);  // Element-wise multiply
             
             // Step 6: dW1 = (dZ1 * X^T) / batch_size
@@ -136,42 +153,52 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
             dW1 = dW1.multiply_scalar(1.0 / batch_size);  // Average over batch
             
             // Step 7: db1 = mean of dZ1 across batch
-            db1 = Matrix(dZ1.row_count(), 1);
+            db1 = Matrix( 1,dZ1.row_count());
             for (size_t i = 0; i < dZ1.row_count(); ++i) {
                 double sum = 0.0;
                 for (size_t j = 0; j < dZ1.col_count(); ++j) {
                     sum += dZ1(i, j);
                 }
-                db1(i, 0) = sum / batch_size;
+                db1(0,i) = sum / batch_size;
             }
 // Add gradient diagnostics
 std::cout << "dZ2 range: " << dZ2.min() << " to " << dZ2.max() << "\n";
 std::cout << "dZ1 range: " << dZ1.min() << " to " << dZ1.max() << "\n";
 std::cout << "ReLU' active: " 
           << dZ1_relu.mean() * 100.0 << "%\n";
-             // Add gradient clipping after calculations
-    dW1 = dW1.clip(-1.0, 1.0);
-    dW2 = dW2.clip(-1.0, 1.0);
-    db1 = db1.clip(-1.0, 1.0);
-    db2 = db2.clip(-1.0, 1.0);
+    //          // Add gradient clipping after calculations
+    // dW1 = dW1.clip(-.50, .50);
+    // dW2 = dW2.clip(-.50, .50);
+    // db1 = db1.clip(-.50, .50);
+    // db2 = db2.clip(-.50, .50);
+// Scaling instead
+dW1 = dW1.multiply_scalar(100.0);  // Boost gradients
+dW2 = dW2.multiply_scalar(100.0);
+db1 = db1.multiply_scalar(100.0);
+db2 = db2.multiply_scalar(100.0);
 
         }
 
-        void MLP::update_params(double learning_rate) {  // Changed int to double
-
-               // Add debug prints
-    std::cout << "Updating params (lr=" << learning_rate << ")\n";
-    std::cout << "dW1 norm: " << dW1.frobenius_norm() << "\n";
-    std::cout << "dW2 norm: " << dW2.frobenius_norm() << "\n";
-            // Update weights and biases using gradients
-            // Add momentum factor (0.9 is typical)
-    const double momentum = 0.9;
-    
-    // Update with momentum
-    W1 = W1 - dW1.multiply_scalar(learning_rate * momentum);
-    W2 = W2 - dW2.multiply_scalar(learning_rate * momentum);
-    b1 = b1 - db1.multiply_scalar(learning_rate * momentum);
-    b2 = b2 - db2.multiply_scalar(learning_rate * momentum);
+        void MLP::update_params(double learning_rate) {
+            const double momentum = 0.9;
+            
+            // Scale gradients in-place
+            dW1.scale_inplace(learning_rate);
+            dW2.scale_inplace(learning_rate);
+            db1.scale_inplace(learning_rate);
+            db2.scale_inplace(learning_rate);
+            
+            // Update velocities
+            vW1 = vW1.multiply_scalar(momentum) - dW1;
+            vW2 = vW2.multiply_scalar(momentum) - dW2;
+            vb1 = vb1.multiply_scalar(momentum) - db1;
+            vb2 = vb2.multiply_scalar(momentum) - db2;
+            
+            // Update parameters
+            W1 = W1 + vW1;
+            W2 = W2 + vW2;
+            b1 = b1 + vb1;
+            b2 = b2 + vb2;
         }
 
         // Matrix MLP::get_predictions(const Matrix& A) {
@@ -299,7 +326,7 @@ void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learn
            // Learning rate decay
         //    double current_lr = initial_lr * (1.0 / (1.0 + decay_rate * i/10.0));
         // Adaptive LR based on loss improvement
-        double current_lr = initial_lr * std::pow(0.95, i/10.0);
+        double current_lr = initial_lr * std::exp(-decay_rate * i);
         double current_loss = cross_entropy_loss(A2, Y);
       // Early stopping with patience
         if (current_loss < best_loss - 0.001) {
@@ -307,7 +334,7 @@ void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learn
             no_improve = 0;
         } else {
             no_improve++;
-            if (no_improve >= 5) {
+            if (no_improve >= 20) {
                 std::cout << "Early stopping at iteration " << i << "\n";
                 break;
             }
@@ -349,13 +376,19 @@ X(0,0) = 0.1; X(1,0) = 0.2;
 X(0,1) = 0.9; X(1,1) = 0.8;
 X(0,2) = 0.1; X(1,2) = 0.9;
 X(0,3) = 0.9; X(1,3) = 0.1;  // Fill with sample data
-
+double mean = X.mean();
+double std = 0.0;
+for (size_t i = 0; i < X.size(); i++) {
+    std += pow(X.no_bounds_check(i) - mean, 2);
+}
+std = sqrt(std / X.size());
+X = X.subtract_scalar(mean).multiply_scalar(1.0/std);
     // Create sample labels
     Matrix Y(1, batch_size);
     Y(0,0) = 0; Y(0,1) = 1; Y(0,2) = 0; Y(0,3) = 1;
 
     // Train the network
-    mlp.gradient_descent(X, Y, 100, 0.1);
+    mlp.gradient_descent(X, Y, 5000, 0.5);
 
     // Test prediction
     Matrix output = mlp.forward_prop(X);

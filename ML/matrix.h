@@ -99,7 +99,11 @@ Matrix clip(double min_val, double max_val) const {
 
     Matrix operator-(const Matrix& other) const {
 if(other.cols!=cols || other.rows!=rows){
-    throw std::invalid_argument("Matrix dimensions must match for subtraction you worthless basement lurking motherfucker");
+    throw std::invalid_argument(
+        "Matrix subtraction dimension mismatch: (" + 
+        std::to_string(rows) + "x" + std::to_string(cols) + ") vs (" +
+        std::to_string(other.rows) + "x" + std::to_string(other.cols) + ")"
+    );
 }
 
         Matrix result(rows,cols);
@@ -110,6 +114,13 @@ if(other.cols!=cols || other.rows!=rows){
         result(i,j)=(*this)(i,j)-other(i,j);
         return result;
     } 
+
+        // Add this method
+        void scale_inplace(double scalar) {
+            for (size_t i = 0; i < data.size(); ++i) {
+                data[i] *= scalar;
+            }
+        }
 
     // Scalar operations
     Matrix multiply_scalar(double scalar) const {
@@ -218,6 +229,23 @@ Matrix RELU() const {
         }
         return result;
     }
+
+
+    Matrix leaky_RELU(double alpha=0.01) const {
+        Matrix result(rows, cols);
+        for (size_t i = 0; i < data.size(); i++) {
+            result.data[i] = (data[i] > 0) ? data[i] : alpha * data[i];
+        }
+        return result;
+    }
+    
+    Matrix deriv_leaky_RELU(double alpha=0.01) const {
+        Matrix result(rows, cols);
+        for (size_t i = 0; i < data.size(); i++) {
+            result.data[i] = (data[i] > 0) ? 1.0 : alpha;
+        }
+        return result;
+    }
 //Potential parallelism implementation
     // Matrix deriv_RELU_parallel() const {
     //     Matrix result(rows, cols);
@@ -316,15 +344,16 @@ double max() const {
     return max_val;
 }
 
-double mean(){
-double mean=0;
-for(size_t i=0;i<size();i++){
-mean+=no_bounds_check(i);
+double mean() const {
+    double sum = 0.0;
+    for (double val : data) sum += val;
+    return sum / data.size();
+}
+Matrix& scale(double factor) {
+    for (double& val : data) val *= factor;
+    return *this;
 }
 
-return mean/size();
-
-}
 
  // Column-wise sum (optimized for batch processing)
 static Matrix sum_cols(const Matrix& A) {

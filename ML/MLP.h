@@ -6,8 +6,8 @@
 class MLP {
 private:
     // Weights and gradients
-    Matrix W1, W2, dW1, dW2;
-    Matrix b1, b2, db1, db2;
+    Matrix W1, vW1, W2, vW2, dW1, dW2;
+    Matrix b1, vb1, b2, vb2, db1, db2;
     
     // Activations and intermediates
     Matrix Z1, A1, dZ1;
@@ -23,7 +23,7 @@ public:
     Matrix forward_prop(const Matrix& X);
     void back_prop(const Matrix& X, const Matrix& Y);
     void update_params(double learning_rate);
-    double compute_loss(const Matrix& Y, const Matrix& A2) ;
+    double compute_loss(const Matrix& Y, const Matrix& A2)   ;
     // Utility functions
     Matrix one_hot(const Matrix& Y, size_t num_classes = 2);
     Matrix get_predictions(const Matrix& A);
