@@ -531,18 +531,18 @@ Matrix&  Matrix::scale(double factor) {
         std::cout << "Transpose passed!\n\n";
     }
     
-    int main() {
-        test_relu();
-        test_leaky_relu();
-        test_relu_derivative();
-        test_leaky_relu_derivative();
-        test_softmax();
-        test_matrix_multiplication();
-        test_transpose();
+    // int main() {
+    //     test_relu();
+    //     test_leaky_relu();
+    //     test_relu_derivative();
+    //     test_leaky_relu_derivative();
+    //     test_softmax();
+    //     test_matrix_multiplication();
+    //     test_transpose();
         
-        std::cout << "All tests passed!\n";
-        return 0;
-    }
+    //     std::cout << "All tests passed!\n";
+    //     return 0;
+    // }
 
 // int main() {
 //     // Create and print random matrix

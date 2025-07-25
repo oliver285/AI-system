@@ -364,6 +364,19 @@ std::cout << "b1 range: " << b1.min() << " to " << b1.max() << "\n";
 
 // Add to the bottom of MLP.cpp
 int main() {
+
+//Matrix unit tests
+    //     test_relu();
+    //     test_leaky_relu();
+    //     test_relu_derivative();
+    //     test_leaky_relu_derivative();
+    //     test_softmax();
+    //     test_matrix_multiplication();
+    //     test_transpose();
+        
+    //     std::cout << "All tests passed!\n";
+
+
     // Test with small dataset
     const size_t input_size = 2;
     const size_t hidden_size = 3;
