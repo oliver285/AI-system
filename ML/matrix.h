@@ -9,6 +9,7 @@
 #include <random>
 #include <stdexcept>
 #include <algorithm>
+#include <cassert>
 class Matrix {
     size_t rows, cols;
     std::vector<double> data;
