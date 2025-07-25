@@ -13,10 +13,11 @@ MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
       vb1(1, hidden_size),           // Changed to (1, hidden_size)
       vb2(1, output_size)            // Changed to (1, output_size)
 {
-    // He initialization
-// In constructor:
-double scale1 = 0.1*std::sqrt(1.0 / (input_size + hidden_size));
-double scale2 = 0.1*std::sqrt(1.0 / (hidden_size + output_size));
+    double scale1 = std::sqrt(2.0 / input_size);  // He initialization
+    double scale2 = std::sqrt(2.0 / hidden_size);
+// 
+// double scale1 = std::sqrt(1.0 / (input_size + hidden_size));
+// double scale2 = std::sqrt(1.0 / (hidden_size + output_size));
     
     W1 = Matrix::random(hidden_size, input_size).multiply_scalar(scale1);
     W2 = Matrix::random(output_size, hidden_size).multiply_scalar(scale2);
@@ -172,10 +173,10 @@ std::cout << "ReLU' active: "
     // db1 = db1.clip(-.50, .50);
     // db2 = db2.clip(-.50, .50);
 // Scaling instead
-dW1 = dW1.multiply_scalar(100.0);  // Boost gradients
-dW2 = dW2.multiply_scalar(100.0);
-db1 = db1.multiply_scalar(100.0);
-db2 = db2.multiply_scalar(100.0);
+// dW1 = dW1.multiply_scalar(100.0);  // Boost gradients
+// dW2 = dW2.multiply_scalar(100.0);
+// db1 = db1.multiply_scalar(100.0);
+// db2 = db2.multiply_scalar(100.0);
 
         }
 
@@ -310,7 +311,7 @@ db2 = db2.multiply_scalar(100.0);
 
 
 void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learning_rate) {
-    double decay_rate = 0.01;  // Changed to double, more standard value
+    double decay_rate = 0;  // Changed to double, more standard value
     Matrix predictions;
     double accuracy;
     double initial_lr=learning_rate;
@@ -326,27 +327,30 @@ void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learn
            // Learning rate decay
         //    double current_lr = initial_lr * (1.0 / (1.0 + decay_rate * i/10.0));
         // Adaptive LR based on loss improvement
-        double current_lr = initial_lr * std::exp(-decay_rate * i);
+        // double current_lr = initial_lr * std::exp(-decay_rate * i);
+double current_lr = initial_lr * (1.0 / (1.0 + decay_rate * i/iterations));
         double current_loss = cross_entropy_loss(A2, Y);
       // Early stopping with patience
-        if (current_loss < best_loss - 0.001) {
-            best_loss = current_loss;
-            no_improve = 0;
-        } else {
-            no_improve++;
-            if (no_improve >= 20) {
-                std::cout << "Early stopping at iteration " << i << "\n";
-                break;
-            }
-            // Reduce LR when loss plateaus
-            current_lr *= 0.5;
-        }
+        // if (current_loss < best_loss - 0.001) {
+        //     best_loss = current_loss;
+        //     no_improve = 0;
+        // } else {
+        //     no_improve++;
+        //     if (no_improve >= 20) {
+        //         std::cout << "Early stopping at iteration " << i << "\n";
+        //         break;
+        //     }
+        //     // Reduce LR when loss plateaus
+        //     current_lr *= 0.5;
+        // }
         
         update_params(current_lr);
         // Print progress every 10 iterations
         if (i % 10 == 0) {
             Matrix predictions = get_predictions(A2);
             double accuracy = get_accuracy(predictions, Y);
+ std::cout << "W1 range: " << W1.min() << " to " << W1.max() << "\n";
+std::cout << "b1 range: " << b1.min() << " to " << b1.max() << "\n";
             std::cout << "Iter: " << i 
                       << " | Loss: " << current_loss
                       << " | Acc: " << accuracy
@@ -388,7 +392,7 @@ X = X.subtract_scalar(mean).multiply_scalar(1.0/std);
     Y(0,0) = 0; Y(0,1) = 1; Y(0,2) = 0; Y(0,3) = 1;
 
     // Train the network
-    mlp.gradient_descent(X, Y, 5000, 0.5);
+    mlp.gradient_descent(X, Y, 1000, .1);
 
     // Test prediction
     Matrix output = mlp.forward_prop(X);
@@ -399,6 +403,22 @@ X = X.subtract_scalar(mean).multiply_scalar(1.0/std);
     
     double accuracy = mlp.get_accuracy(predictions, Y);
     std::cout << "Final accuracy: " << accuracy << "\n";
+
+    std::cout << "\nPrediction confidence:\n";
+for(int i=0; i<batch_size; i++) {
+    int pred = static_cast<int>(predictions(0, i));
+    double conf = output(pred, i);
+    std::cout << "Sample " << i << ": " << conf << "\n";
+}
+
+// Should add
+if(accuracy == 1.0 && mlp.compute_loss(Y, output) < 0.1) {
+    std::cout << "PERFECT SYSTEM\n";
+} else if(accuracy == 1.0) {
+    std::cout << "Correct predictions but LOW CONFIDENCE\n";
+} else {
+    std::cout << "UNDERPERFORMING SYSTEM\n";
+}
 
     return 0;
 }

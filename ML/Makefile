@@ -1,0 +1,1 @@
+ g++ -g MLP.cpp matrix.cpp -o mlp_program
