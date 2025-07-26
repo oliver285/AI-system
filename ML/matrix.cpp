@@ -28,6 +28,8 @@ double&  Matrix::no_bounds_check(size_t i){
     return data[i];
 }
 
+
+
 // double get(int i, int j) const { 
 //                         if (i < 0 || i >= row_count() || j < 0 || j >= col_count())
 //         throw std::out_of_range("Matrix index out of range");
@@ -359,6 +361,44 @@ Matrix&  Matrix::scale(double factor) {
     return result;
 }
 
+
+Matrix Matrix::rowwise_mean() const {
+    Matrix result(rows, 1);
+    for (size_t r = 0; r < rows; ++r) {
+        double sum = 0.0;
+        for (size_t c = 0; c < cols; ++c)
+            sum += data[r * cols + c];
+        result(r, 0) = sum / cols;
+    }
+    return result;
+}
+
+Matrix Matrix::rowwise_std(double epsilon) const {
+    Matrix means = this->rowwise_mean();
+    Matrix result(rows, 1);
+    
+    for (size_t r = 0; r < rows; ++r) {
+        double sq_sum = 0.0;
+        for (size_t c = 0; c < cols; ++c) {
+            double diff = data[r * cols + c] - means(r, 0);
+            sq_sum += diff * diff;
+        }
+        result(r, 0) = std::sqrt(sq_sum / cols + epsilon);
+    }
+    return result;
+}
+
+Matrix& Matrix::subtract_rowwise(const Matrix& vec) {
+    if (vec.rows != rows || vec.cols != 1)
+        throw std::invalid_argument("Invalid vector dimensions");
+    
+    for (size_t r = 0; r < rows; ++r)
+        for (size_t c = 0; c < cols; ++c)
+            data[r * cols + c] -= vec(r, 0);
+    
+    return *this;
+}
+
     // Fill with value
     void  Matrix::fill(double value) {
 
@@ -415,10 +455,7 @@ Matrix&  Matrix::scale(double factor) {
         }
         return result;
     }
-    #include <cassert>
-    #include <cmath>
-    #include <iostream>
-    #include <vector>
+   
     
     void test_relu() {
         std::cout << "Testing RELU...\n";

@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cassert>
+
 class Matrix {
     size_t rows, cols;
     std::vector<double> data;
@@ -55,6 +56,9 @@ public:
     double mean() const;
     Matrix& scale(double factor);
     static Matrix sum_cols(const Matrix& A);
+   Matrix rowwise_mean() const;
+  Matrix rowwise_std(double epsilon = 1e-8) const;
+  Matrix& subtract_rowwise(const Matrix& vec);
 
     // Utility functions
     void fill(double value);

@@ -13,8 +13,10 @@ class image_processor {
         Matrix load_images(const std::string& folder_path);
         Matrix load_labels(const std::string& folder_path, int label);
         uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
+        // Constructor/Destructor
         image_processor();
         ~image_processor();
+        // Utility Methods
         Matrix load_dataset(const std::string& folder_path);
         void load_image_data(const std::string files, Matrix& output,int count);
         void shuffle_dataset(Matrix& images, Matrix& labels);
@@ -23,7 +25,7 @@ class image_processor {
         // Helper functions
         std::vector<std::filesystem::path> get_valid_image_files(const std::string& folder_path);
        
-        // Constructor/Destructor
+        
  
     
         // Core Methods
@@ -32,7 +34,7 @@ class image_processor {
         Matrix flatten_image(const cv::Mat& img);
         // Matrix load_dataset(const std::string& folder_path, int label);
     
-        // Utility Methods
+        
         
      
     };
