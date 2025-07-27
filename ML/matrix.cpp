@@ -253,7 +253,7 @@ Matrix  Matrix::RELU() const {
     
         // 1. Find max for numerical stability (per column)
         for (size_t j = 0; j < A.cols; ++j) {
-            double max_val = A(0, j);
+            double max_val = -std::numeric_limits<double>::max();
             for (size_t i = 0; i < A.rows; ++i) {
                 if (A(i, j) > max_val) max_val = A(i, j);
             }

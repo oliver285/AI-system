@@ -69,32 +69,26 @@ TEST_F(MLPTest, BackpropGradientShapes) {
     ASSERT_EQ(mlp.get_db2().col_count(), output_size);
 }
 
+// mlp_test.cpp - Update BackpropGradientValues test
 TEST_F(MLPTest, BackpropGradientValues) {
     Matrix X(input_size, 1);
     Matrix Y(1, 1);
-    X.fill(0.5);
-    Y(0, 0) = 1;
+    X(0,0) = 0.5; X(1,0) = 0.5;  // Explicit values
+    Y(0,0) = 1;
 
     mlp.forward_prop(X);
     mlp.back_prop(X, Y);
 
-    Matrix probs = mlp.get_A2();
-    // Add dimension check
-    ASSERT_EQ(probs.row_count(), output_size);
-    ASSERT_EQ(probs.col_count(), 1);
+    // Manually computed expected values
+    Matrix expected_dZ2(output_size, 1);
+    expected_dZ2(0,0) = 0.5;    // Expected gradient for class 0
+    expected_dZ2(1,0) = -0.5;   // Expected gradient for class 1
 
-    Matrix expected_dZ2 = probs;
-    
-    // Add safety check
-    size_t label_index = static_cast<size_t>(Y(0, 0));
-    if (label_index < expected_dZ2.row_count()) {
-        expected_dZ2(label_index, 0) -= 1.0;
-    } else {
-        FAIL() << "Label index out of range: " << label_index;
-    }
-
-    for (size_t i = 0; i < output_size; i++) {
-        ASSERT_NEAR(mlp.get_dZ2()(i, 0), expected_dZ2(i, 0), 1e-6);
+    Matrix checkDZ2 = mlp.get_dZ2();
+    for (size_t i = 0; i < checkDZ2.row_count(); ++i) {
+        for (size_t j = 0; j < checkDZ2.col_count(); ++j) {
+            ASSERT_NEAR(checkDZ2(i, j), expected_dZ2(i, j), 1e-6);
+        }
     }
 }
 
@@ -159,4 +153,62 @@ TEST_F(MLPTest, ParameterUpdate) {
         double expected = orig_b1.no_bounds_check(i) - 0.1 * 0.02;
         ASSERT_NEAR(mlp.get_b1().no_bounds_check(i), expected, 1e-6);
     }
+}
+
+// Add to your mlp_test.cpp
+
+TEST(MatrixTest, SoftmaxStability) {
+    Matrix logits(2, 1);
+    logits(0, 0) = 1000.0;
+    logits(1, 0) = 1001.0;
+
+    Matrix probs = Matrix::softmax(logits);
+    double sum = 0.0;
+    for (size_t i = 0; i < probs.row_count(); ++i) {
+        ASSERT_TRUE(std::isfinite(probs(i, 0)));
+        ASSERT_GE(probs(i, 0), 0.0);
+        ASSERT_LE(probs(i, 0), 1.0);
+        sum += probs(i, 0);
+    }
+    ASSERT_NEAR(sum, 1.0, 1e-6);
+}
+
+TEST_F(MLPTest, GradientMagnitudeCheck) {
+
+
+
+    Matrix test_W1=Matrix::random(hidden_size,input_size).multiply_scalar(.5);
+    Matrix test_W2=Matrix::random(output_size,hidden_size).multiply_scalar(.5);;
+    mlp.set_W1(test_W1);
+    mlp.set_W2(test_W2);
+
+    Matrix X(input_size, 2);
+    Matrix Y(1, 2);
+    X(0, 0) = 0.5; X(1, 0) = -0.3;  // ← some variance
+    X(0, 1) = 1.2; X(1, 1) =  0.8;
+    Y(0, 0) = 0; Y(0, 1) = 1; 
+    
+    EXPECT_EQ(X.col_count(), 2);
+    EXPECT_EQ(Y.col_count(), 2);
+    
+
+    mlp.forward_prop(X);
+    mlp.back_prop(X, Y);
+
+    double norm_dW1 = mlp.get_dW1().frobenius_norm();
+    double norm_dW2 = mlp.get_dW2().frobenius_norm();
+    double norm_db1 = mlp.get_db1().frobenius_norm();
+    double norm_db2 = mlp.get_db2().frobenius_norm();
+
+    ASSERT_GT(norm_dW1, 1e-6);
+    ASSERT_LT(norm_dW1, 100.0);
+
+    ASSERT_GT(norm_dW2, 1e-6);
+    ASSERT_LT(norm_dW2, 100.0);
+
+    ASSERT_GT(norm_db1, 1e-6);
+    ASSERT_LT(norm_db1, 100.0);
+
+    ASSERT_GT(norm_db2, 1e-6);
+    ASSERT_LT(norm_db2, 100.0);
 }

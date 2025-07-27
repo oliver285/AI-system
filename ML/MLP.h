@@ -16,7 +16,7 @@ private:
     Matrix Z1, A1, dZ1;
     Matrix Z2, A2, dZ2;
     
-    size_t batch_size;
+    // size_t batch_size; Defined locally since depends on function
 
 public:
     // Constructor
