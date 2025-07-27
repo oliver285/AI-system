@@ -1,4 +1,4 @@
-#include "image_processor.h"
+#include "../include/image_processor.h"
 
 image_processor::image_processor() = default;
 image_processor::~image_processor() = default;
