@@ -1,7 +1,9 @@
 // mlp_test.cpp
 #include <gtest/gtest.h>
-#include "MLP.h"
-#include "matrix.h"
+#include"../include/matrix.h"
+#include"../include/MLP.h"
+// #include "MLP.h"
+// #include "matrix.h"
 #include <cmath>  // For log()
 
 class MLPTest : public ::testing::Test {

@@ -333,18 +333,18 @@ void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learn
 double current_lr = initial_lr * (1.0 / (1.0 + decay_rate * i/iterations));
         double current_loss = cross_entropy_loss(A2, Y);
       // Early stopping with patience
-        // if (current_loss < best_loss - 0.001) {
-        //     best_loss = current_loss;
-        //     no_improve = 0;
-        // } else {
-        //     no_improve++;
-        //     if (no_improve >= 20) {
-        //         std::cout << "Early stopping at iteration " << i << "\n";
-        //         break;
-        //     }
-        //     // Reduce LR when loss plateaus
-        //     current_lr *= 0.5;
-        // }
+        if (current_loss < best_loss - 0.001) {
+            best_loss = current_loss;
+            no_improve = 0;
+        } else {
+            no_improve++;
+            if (no_improve >= 20) {
+                std::cout << "Early stopping at iteration " << i << "\n";
+                break;
+            }
+            // Reduce LR when loss plateaus
+            current_lr *= 0.5;
+        }
         
         update_params(current_lr);
         // Print progress every 10 iterations
@@ -364,154 +364,4 @@ std::cout << "b1 range: " << b1.min() << " to " << b1.max() << "\n";
 }
 
 
-// Add to the bottom of MLP.cpp
-int main() {
 
-//Matrix unit tests
-    //     test_relu();
-    //     test_leaky_relu();
-    //     test_relu_derivative();
-    //     test_leaky_relu_derivative();
-    //     test_softmax();
-    //     test_matrix_multiplication();
-    //     test_transpose();
-        
-    //     std::cout << "All tests passed!\n";
-
-
-    // Test with small dataset
-    const size_t input_size = 2;
-    const size_t hidden_size = 3;
-    const size_t output_size = 2;
-    const size_t batch_size = 4;
-
-    // Create MLP
-    MLP mlp(input_size, hidden_size, output_size);
-
-    // Create sample input (2 features, 4 samples)
-   // Create sample input with variation
-Matrix X(input_size, batch_size);
-X(0,0) = 0.1; X(1,0) = 0.2;
-X(0,1) = 0.9; X(1,1) = 0.8;
-X(0,2) = 0.1; X(1,2) = 0.9;
-X(0,3) = 0.9; X(1,3) = 0.1;  // Fill with sample data
-double mean = X.mean();
-double std = 0.0;
-for (size_t i = 0; i < X.size(); i++) {
-    std += pow(X.no_bounds_check(i) - mean, 2);
-}
-std = sqrt(std / X.size());
-X = X.subtract_scalar(mean).multiply_scalar(1.0/std);
-    // Create sample labels
-    Matrix Y(1, batch_size);
-    Y(0,0) = 0; Y(0,1) = 1; Y(0,2) = 0; Y(0,3) = 1;
-
-    // Train the network
-    mlp.gradient_descent(X, Y, 1000, .1);
-
-    // Test prediction
-    Matrix output = mlp.forward_prop(X);
-    Matrix predictions = mlp.get_predictions(output);
-    
-    std::cout << "\nFinal predictions:\n";
-    predictions.print();
-    
-    double accuracy = mlp.get_accuracy(predictions, Y);
-    std::cout << "Final accuracy: " << accuracy << "\n";
-
-    std::cout << "\nPrediction confidence:\n";
-for(int i=0; i<batch_size; i++) {
-    int pred = static_cast<int>(predictions(0, i));
-    double conf = output(pred, i);
-    std::cout << "Sample " << i << ": " << conf << "\n";
-}
-
-// Should add
-if(accuracy == 1.0 && mlp.compute_loss(Y, output) < 0.1) {
-    std::cout << "PERFECT SYSTEM\n";
-} else if(accuracy == 1.0) {
-    std::cout << "Correct predictions but LOW CONFIDENCE\n";
-} else {
-    std::cout << "UNDERPERFORMING SYSTEM\n";
-}
-
-    return 0;
-}
-// /* potential alternative metric once code has proven functional*/
-
-
-// struct TrainingMetrics {
-//     double train_loss;
-//     double train_accuracy;
-//     double val_accuracy;
-//     double learning_rate;
-// };
-
-// TrainingMetrics gradient_descent(Matrix& X_train, Matrix& Y_train, 
-//                                const Matrix& X_val, const Matrix& Y_val,
-//                                size_t iterations, double initial_lr,
-//                                double min_lr = 1e-5, size_t patience = 20) {
-//     double decay_rate = 0.01;
-//     double best_val_accuracy = 0.0;
-//     size_t no_improvement_count = 0;
-//     std::vector<TrainingMetrics> history;
-
-//     for (size_t i = 0; i < iterations; ++i) {
-//         // 1. Forward pass
-//         Matrix A2 = forward_prop(X_train);
-        
-//         // 2. Calculate metrics
-//         double loss = compute_loss(A2, Y_train);
-//         double accuracy = get_accuracy(get_predictions(A2), Y_train);
-        
-//         // 3. Backpropagation
-//         back_prop(X_train, Y_train);
-        
-//         // 4. Gradient clipping
-//         clip_gradients(5.0); // Prevent exploding gradients
-        
-//         // 5. Update parameters
-//         update_params(initial_lr);
-        
-//         // 6. Learning rate decay with lower bound
-//         initial_lr = std::max(min_lr, 
-//                             initial_lr * (1.0 / (1.0 + decay_rate * i)));
-        
-//         // 7. Validation check
-//         double val_acc = 0;
-//         if (i % 10 == 0) {
-//             Matrix val_pred = forward_prop(X_val);
-//             val_acc = get_accuracy(get_predictions(val_pred), Y_val);
-            
-//             // Early stopping check
-//             if (val_acc > best_val_accuracy) {
-//                 best_val_accuracy = val_acc;
-//                 no_improvement_count = 0;
-//                 // save_best_weights();
-//             } else {
-//                 no_improvement_count++;
-//             }
-//         }
-
-//         // 8. Store metrics
-//         history.push_back({loss, accuracy, val_acc, initial_lr});
-
-//         // 9. Progress reporting
-//         if (i % 10 == 0) {
-//             std::cout << fmt::format(
-//                 "Iter {:4d} | Loss: {:.4f} | Train Acc: {:.2f}% | "
-//                 "Val Acc: {:.2f}% | lr: {:.6f} | No imp: {}/{}",
-//                 i, loss, accuracy*100, val_acc*100, initial_lr,
-//                 no_improvement_count, patience
-//             ) << std::endl;
-//         }
-
-//         // 10. Early stopping
-//         if (no_improvement_count >= patience) {
-//             std::cout << "Early stopping triggered" << std::endl;
-//             break;
-//         }
-//     }
-
-//     return history.back();
-// }
