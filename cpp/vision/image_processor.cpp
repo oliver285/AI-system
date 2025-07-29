@@ -1,4 +1,4 @@
-#include "../include/image_processor.h"
+#include "image_processor.h"
 
 image_processor::image_processor() = default;
 image_processor::~image_processor() = default;
@@ -244,50 +244,51 @@ void image_processor::shuffle_dataset(Matrix& images, Matrix& labels) {
 
 
 
-int main() {
-    image_processor processor;
+// int main() {
+//     image_processor processor;
 
-    try {
-        // Load datasets
-        auto cracked_images = processor.load_dataset("../datasets/testing/data/Cracked");
-        auto cracked_labels = processor.load_labels("../datasets/testing/data/Cracked", 1);
-        auto noncracked_images = processor.load_dataset("../datasets/testing/data/NonCracked");
-        auto  noncracked_labels = processor.load_labels("../datasets/testing/data/NonCracked", 0);
-        uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
-        // Combine images and labels
-        Matrix all_images(cracked_images.row_count() + noncracked_images.row_count(), 
-                         IMG_WIDTH * IMG_HEIGHT);
-        Matrix all_labels(cracked_labels.row_count() + noncracked_labels.row_count(), 1);
+//     try {
+//         // Load datasets
+//         auto cracked_images = processor.load_dataset("../datasets/testing/data/Cracked");
+//         auto cracked_labels = processor.load_labels("../datasets/testing/data/Cracked", 1);
+//         auto noncracked_images = processor.load_dataset("../datasets/testing/data/NonCracked");
+//         auto  noncracked_labels = processor.load_labels("../datasets/testing/data/NonCracked", 0);
+//         uint8_t IMG_WIDTH=28, IMG_HEIGHT =28;
+//         // Combine images and labels
+//         Matrix all_images(cracked_images.row_count() + noncracked_images.row_count(), 
+//                          IMG_WIDTH * IMG_HEIGHT);
+//         Matrix all_labels(cracked_labels.row_count() + noncracked_labels.row_count(), 1);
 
-        // Copy cracked data
-        for (size_t i = 0; i < cracked_images.row_count(); ++i) {
-            for (size_t j = 0; j < cracked_images.col_count(); ++j) {
-                all_images(i, j) = cracked_images(i, j);
-            }
-            all_labels(i, 0) = cracked_labels(i, 0);
-        }
+//         // Copy cracked data
+//         for (size_t i = 0; i < cracked_images.row_count(); ++i) {
+//             for (size_t j = 0; j < cracked_images.col_count(); ++j) {
+//                 all_images(i, j) = cracked_images(i, j);
+//             }
+//             all_labels(i, 0) = cracked_labels(i, 0);
+//         }
 
-        // Copy non-cracked data
-        for (size_t i = 0; i < noncracked_images.row_count(); ++i) {
-            for (size_t j = 0; j < noncracked_images.col_count(); ++j) {
-                all_images(i + cracked_images.row_count(), j) = noncracked_images(i, j);
-            }
-            all_labels(i + cracked_labels.row_count(), 0) = noncracked_labels(i, 0);
-        }
+//         // Copy non-cracked data
+//         for (size_t i = 0; i < noncracked_images.row_count(); ++i) {
+//             for (size_t j = 0; j < noncracked_images.col_count(); ++j) {
+//                 all_images(i + cracked_images.row_count(), j) = noncracked_images(i, j);
+//             }
+//             all_labels(i + cracked_labels.row_count(), 0) = noncracked_labels(i, 0);
+//         }
 
-        // Shuffle the combined dataset
-        processor.shuffle_dataset(all_images, all_labels);
+//         // Shuffle the combined dataset
+//         processor.shuffle_dataset(all_images, all_labels);
 
-        // Save to CSV (you might want to save images and labels separately)
-        processor.save_to_csv(all_images, "crack_images.csv");
-        processor.save_to_csv(all_labels, "crack_labels.csv");
+//         // Save to CSV (you might want to save images and labels separately)
+//         processor.save_to_csv(all_images, "crack_images.csv");
+//         processor.save_to_csv(all_labels, "crack_labels.csv");
 
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
+//     } catch (const cv::Exception& e) {  // Add explicit exception type
+//         std::cerr << "OpenCV error: " << e.what() << '\n';
+//     } catch (const std::exception& e) {  // General C++ exceptions
+//         std::cerr << "Error: " << e.what() << '\n';
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
   
 

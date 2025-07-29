@@ -4,7 +4,7 @@
 #ifdef UNIT_TESTING
 class MLPTest;  // Forward declaration
 #endif
-#include "matrix.h"
+#include "../core/matrix.h"
 
 class MLP {
 private:

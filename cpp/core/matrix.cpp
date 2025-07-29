@@ -6,16 +6,22 @@
   // Access element (i,j)
     // Access element (i,j) with bounds checking
     // Dual operator() for const and non-const access
-    double&  Matrix::operator()(size_t i, size_t j) {
-        if (i >= rows || j >= cols)
-            throw std::out_of_range("Matrix index out of range");
-        return data[i * cols + j];
+    double& Matrix::operator()(size_t row, size_t col, Error* err) {
+        if (row >= rows || col >= cols) {
+            if (err) *err = INDEX_OUT_OF_RANGE;
+            thread_local double dummy = 0.0;
+            return dummy;
+        }
+        return data[row * cols + col];
     }
     
-    const double&  Matrix::operator()(size_t i, size_t j) const {
-        if (i >= rows || j >= cols)
-            throw std::out_of_range("Matrix index out of range");
-        return data[i * cols + j];
+    const double& Matrix::operator()(size_t row, size_t col, Error* err) const {
+        if (row >= rows || col >= cols) {
+            if (err) *err = INDEX_OUT_OF_RANGE;
+            thread_local double dummy = 0.0;
+            return dummy;
+        }
+        return data[row * cols + col];
     }
 // Accessors
 size_t  Matrix::row_count() const  { return rows; }
@@ -75,36 +81,31 @@ Matrix  Matrix::clip(double min_val, double max_val) const {
 
 
     // Element-wise operations
-    Matrix  Matrix::operator+(const Matrix& other) const {
-   // Check for matching dimensions
-   if (rows != other.rows || cols != other.cols) {
-    throw std::invalid_argument("Matrix dimensions must match for addition");
-}
-        Matrix result(rows,cols);
-
- for (size_t i = 0; i < rows; ++i)
- for (size_t j = 0; j < cols; ++j)
-                result(i,j)=(*this)(i,j)+other(i,j);
+    Matrix Matrix::add(const Matrix& other, Error* err) const {
+        Matrix result(rows, cols);
+        if (rows != other.rows || cols != other.cols) {
+            if (err) *err = DIMENSION_MISMATCH;
+            result.fill(0.0);
+            return result;
+        }
+        for (size_t i = 0; i < rows; ++i)
+            for (size_t j = 0; j < cols; ++j)
+                result(i, j) = (*this)(i, j) + other(i, j);
         return result;
     }
-
-    Matrix  Matrix::operator-(const Matrix& other) const {
-if(other.cols!=cols || other.rows!=rows){
-    throw std::invalid_argument(
-        "Matrix subtraction dimension mismatch: (" + 
-        std::to_string(rows) + "x" + std::to_string(cols) + ") vs (" +
-        std::to_string(other.rows) + "x" + std::to_string(other.cols) + ")"
-    );
-}
-
-        Matrix result(rows,cols);
- 
-
+    
+    Matrix Matrix::subtract(const Matrix& other, Error* err) const {
+        Matrix result(rows, cols);
+        if (rows != other.rows || cols != other.cols) {
+            if (err) *err = DIMENSION_MISMATCH;
+            result.fill(0.0);
+            return result;
+        }
         for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < cols; ++j)
-        result(i,j)=(*this)(i,j)-other(i,j);
+            for (size_t j = 0; j < cols; ++j)
+                result(i, j) = (*this)(i, j) - other(i, j);
         return result;
-    } 
+    }
 
         // Add this method
         void  Matrix::scale_inplace(double scalar) {
@@ -154,25 +155,17 @@ Matrix  Matrix::subtract_scalar(double scalar) const {
 
  // Matrix multiplication with proper access
  
-  Matrix  Matrix::multiply(const Matrix& A, const Matrix& B) {
-    // Validate matrix dimensions with detailed error message
+ Matrix Matrix::multiply(const Matrix& A, const Matrix& B, Error* err) {
     if (A.cols != B.rows) {
-        throw std::invalid_argument(
-            "Matrix multiplication dimension mismatch: A.cols (" + 
-            std::to_string(A.cols) + ") != B.rows (" + 
-            std::to_string(B.rows) + ")"
-        );
+        if (err) *err = DIMENSION_MISMATCH;
+        return Matrix();
     }
 
     Matrix result(A.rows, B.cols);
-    const size_t inner_dim = A.cols;  // Consistent size type
-
-    // Optimized multiplication with row-major ordering
     for (size_t i = 0; i < A.rows; ++i) {
         for (size_t j = 0; j < B.cols; ++j) {
             double sum = 0.0;
-            // Inner loop unrolling could be added here
-            for (size_t k = 0; k < inner_dim; ++k) {
+            for (size_t k = 0; k < A.cols; ++k) {
                 sum += A(i, k) * B(k, j);
             }
             result(i, j) = sum;
@@ -183,18 +176,15 @@ Matrix  Matrix::subtract_scalar(double scalar) const {
     // Transpose
     // Transpose with proper access
 // Static transpose (when neither rows nor cols is dynamic)
-Matrix  Matrix::transpose() const {
-    
-        // Static case
-        Matrix result(cols,rows);
-        for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < cols; ++j)
-
-            // Direct data access for better performance
-            result.data[j * rows + i] = data[i * cols + j];
-                // result.set(j, i, get(i, j));
-        return result;
-    
+Matrix Matrix::transpose() const {
+    Matrix result(cols, rows);
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; ++j) {
+            // Use safe access instead of direct data manipulation
+            result(j, i) = (*this)(i, j);  // ✅ Better maintainability
+        }
+    }
+    return result;
 }
 
 
@@ -388,13 +378,15 @@ Matrix Matrix::rowwise_std(double epsilon) const {
     return result;
 }
 
-Matrix& Matrix::subtract_rowwise(const Matrix& vec) {
-    if (vec.rows != rows || vec.cols != 1)
-        throw std::invalid_argument("Invalid vector dimensions");
+Matrix& Matrix::subtract_rowwise(const Matrix& vec, Error* err) {
+    if (vec.rows != rows || vec.cols != 1) {
+        if (err) *err = DIMENSION_MISMATCH;
+        return *this; // Safe return
+    }
     
     for (size_t r = 0; r < rows; ++r)
         for (size_t c = 0; c < cols; ++c)
-            data[r * cols + c] -= vec(r, 0);
+            (*this)(r,c) -= vec(r, 0);
     
     return *this;
 }
@@ -437,14 +429,11 @@ Matrix& Matrix::subtract_rowwise(const Matrix& vec) {
         }
     }
 
-    Matrix  Matrix::hadamard_product(const Matrix& A) const {
+    Matrix  Matrix::hadamard_product(const Matrix& A,Error* err) const {
         // Check for matching dimensions
         if (rows != A.rows || cols != A.cols) {
-            throw std::invalid_argument(
-                "Matrix dimensions must match for Hadamard product. " +
-                std::to_string(rows) + "x" + std::to_string(cols) + " vs " +
-                std::to_string(A.rows) + "x" + std::to_string(A.cols)
-            );
+            if (err) *err = DIMENSION_MISMATCH;
+            return Matrix();
         }
     
         Matrix result(rows, cols);
@@ -457,116 +446,7 @@ Matrix& Matrix::subtract_rowwise(const Matrix& vec) {
     }
    
     
-    void test_relu() {
-        std::cout << "Testing RELU...\n";
-        Matrix m(2, 2);
-        m(0,0) = -1.0; m(0,1) = 0.0;
-        m(1,0) = 2.0;  m(1,1) = -0.5;
-        
-        Matrix result = m.RELU();
-        assert(result(0,0) == 0.0);
-        assert(result(0,1) == 0.0);
-        assert(result(1,0) == 2.0);
-        assert(result(1,1) == 0.0);
-        std::cout << "RELU passed!\n\n";
-    }
-    
-    void test_leaky_relu() {
-        std::cout << "Testing Leaky RELU...\n";
-        Matrix m(1, 3);
-        m(0,0) = -2.0; m(0,1) = 0.0; m(0,2) = 1.0;
-        
-        Matrix result = m.leaky_RELU(0.1);
-        assert(fabs(result(0,0) - (-0.2) < 1e-6));
-        assert(result(0,1) == 0.0);
-        assert(result(0,2) == 1.0);
-        std::cout << "Leaky RELU passed!\n\n";
-    }
-    
-    void test_relu_derivative() {
-        std::cout << "Testing RELU Derivative...\n";
-        Matrix m(1, 3);
-        m(0,0) = -1.0; m(0,1) = 0.0; m(0,2) = 1.0;
-        
-        Matrix result = m.deriv_RELU();
-        assert(result(0,0) == 0.0);
-        assert(result(0,1) == 1.0);  // Derivative at 0 is defined as 1
-        assert(result(0,2) == 1.0);
-        std::cout << "RELU Derivative passed!\n\n";
-    }
-    
-    void test_leaky_relu_derivative() {
-        std::cout << "Testing Leaky RELU Derivative...\n";
-        Matrix m(1, 3);
-        m(0,0) = -1.0; m(0,1) = 0.0; m(0,2) = 1.0;
-        
-        Matrix result = m.deriv_leaky_RELU(0.1);
-        assert(fabs(result(0,0) - 0.1 < 1e-6));
-        assert(result(0,1) == 1.0);  // Derivative at 0 is defined as 1
-        assert(result(0,2) == 1.0);
-        std::cout << "Leaky RELU Derivative passed!\n\n";
-    }
-    
-    void test_softmax() {
-        std::cout << "Testing Softmax...\n";
-        Matrix m(3, 2);
-        // Column 1: [1.0, 2.0, 3.0]
-        // Column 2: [-1.0, 0.0, 1.0]
-        m(0,0) = 1.0; m(0,1) = -1.0;
-        m(1,0) = 2.0; m(1,1) = 0.0;
-        m(2,0) = 3.0; m(2,1) = 1.0;
-        
-        Matrix result = Matrix::softmax(m);
-        
-        // Test column 1
-        double sum1 = result(0,0) + result(1,0) + result(2,0);
-        assert(fabs(sum1 - 1.0) < 1e-6);
-        assert(result(2,0) > result(1,0));
-        assert(result(1,0) > result(0,0));
-        
-        // Test column 2
-        double sum2 = result(0,1) + result(1,1) + result(2,1);
-        assert(fabs(sum2 - 1.0) < 1e-6);
-        assert(result(2,1) > result(1,1));
-        assert(result(1,1) > result(0,1));
-        
-        std::cout << "Softmax passed!\n\n";
-    }
-    
-    void test_matrix_multiplication() {
-        std::cout << "Testing Matrix Multiplication...\n";
-        Matrix A(2, 3);
-        A(0,0) = 1; A(0,1) = 2; A(0,2) = 3;
-        A(1,0) = 4; A(1,1) = 5; A(1,2) = 6;
-        
-        Matrix B(3, 2);
-        B(0,0) = 7; B(0,1) = 8;
-        B(1,0) = 9; B(1,1) = 10;
-        B(2,0) = 11; B(2,1) = 12;
-        
-        Matrix C = Matrix::multiply(A, B);
-        assert(C(0,0) == 58);
-        assert(C(0,1) == 64);
-        assert(C(1,0) == 139);
-        assert(C(1,1) == 154);
-        std::cout << "Matrix Multiplication passed!\n\n";
-    }
-    
-    void test_transpose() {
-        std::cout << "Testing Transpose...\n";
-        Matrix m(2, 3);
-        m(0,0) = 1; m(0,1) = 2; m(0,2) = 3;
-        m(1,0) = 4; m(1,1) = 5; m(1,2) = 6;
-        
-        Matrix t = m.transpose();
-        assert(t(0,0) == 1);
-        assert(t(0,1) == 4);
-        assert(t(1,0) == 2);
-        assert(t(1,1) == 5);
-        assert(t(2,0) == 3);
-        assert(t(2,1) == 6);
-        std::cout << "Transpose passed!\n\n";
-    }
+  
     
     // int main() {
     //     test_relu();

@@ -1,7 +1,7 @@
 // mlp_test.cpp
 #include <gtest/gtest.h>
-#include"../include/matrix.h"
-#include"../include/MLP.h"
+#include"../core/matrix.h"
+#include"../ml/MLP.h"
 // #include "MLP.h"
 // #include "matrix.h"
 #include <cmath>  // For log()

@@ -2,14 +2,20 @@
 #define MATRIX_H
 
 #include <vector>
-#include <cstddef> // For size_t
+#include <cstddef>
 #include <iostream>
-// #include <vector>
 #include <cmath>
 #include <random>
 #include <stdexcept>
 #include <algorithm>
 #include <cassert>
+#include <limits>
+// ERROR enum OUTSIDE class
+enum Error {
+    NO_ERROR = 0,
+    INDEX_OUT_OF_RANGE,
+    DIMENSION_MISMATCH,
+};
 
 class Matrix {
     size_t rows, cols;
@@ -20,9 +26,10 @@ public:
     Matrix();
     Matrix(size_t r, size_t c);
 
-    // Accessors
-    double& operator()(size_t i, size_t j);
-    const double& operator()(size_t i, size_t j) const;
+
+// Modify accessors to return error status
+double& operator()(size_t row, size_t col, Error* err = nullptr);
+const double& operator()(size_t row, size_t col, Error* err = nullptr) const;
     size_t row_count() const;
     size_t col_count() const;
     size_t size() const;
@@ -33,14 +40,14 @@ public:
     static Matrix random(size_t r, size_t c);
     double frobenius_norm() const;
     Matrix clip(double min_val, double max_val) const;
-    Matrix operator+(const Matrix& other) const;
-    Matrix operator-(const Matrix& other) const;
+    Matrix add(const Matrix& other,Error* err= nullptr) const;
+    Matrix subtract(const Matrix& other,Error* err= nullptr) const;
     void scale_inplace(double scalar);
     Matrix multiply_scalar(double scalar) const;
     Matrix subtract_scalar(double scalar) const;
-    static Matrix multiply(const Matrix& A, const Matrix& B);
+    static Matrix multiply(const Matrix& A, const Matrix& B,Error* err= nullptr);
     Matrix transpose() const;
-    Matrix hadamard_product(const Matrix& A) const;
+    Matrix hadamard_product(const Matrix& A, Error* err = nullptr) const;
 
     // Activation functions
     Matrix RELU() const;
@@ -58,7 +65,7 @@ public:
     static Matrix sum_cols(const Matrix& A);
    Matrix rowwise_mean() const;
   Matrix rowwise_std(double epsilon = 1e-8) const;
-  Matrix& subtract_rowwise(const Matrix& vec);
+  Matrix& subtract_rowwise(const Matrix& vec,Error* err = nullptr);
 
     // Utility functions
     void fill(double value);

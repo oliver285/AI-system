@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "../core/matrix.h"
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 #include <filesystem>
