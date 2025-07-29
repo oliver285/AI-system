@@ -86,11 +86,13 @@ int main() {
         const size_t output_size = 2;   // Binary classification
         MLP mlp(input_size, hidden_size, output_size);
         
-        // Train the network
-        mlp.gradient_descent(train_images, train_labels, 1000, 0.1);
-    
-        // Test prediction
-        Matrix output = mlp.forward_prop(test_images);
+     // After splitting into train/test sets:
+Matrix train_images_T = train_images.transpose();
+Matrix test_images_T = test_images.transpose();
+
+// Pass transposed matrices to MLP functions
+mlp.gradient_descent(train_images_T, train_labels, 1000, 0.1);
+Matrix output = mlp.forward_prop(test_images_T);
         if (output.row_count() == 0 || output.col_count() == 0) {
             std::cerr << "Forward propagation failed\n";
             return 1;
@@ -109,12 +111,12 @@ int main() {
         std::cout << "Test accuracy: " << accuracy << "\n";
     
         std::cout << "\nPrediction confidence:\n";
-        size_t batch_size = test_images.row_count();
-        for (size_t i = 0; i < batch_size; i++) {
-            int pred = static_cast<int>(predictions(0, i));
-            double conf = output(pred, i);
-            std::cout << "Sample " << i << ": " << conf << "\n";
-        }
+        // size_t batch_size = test_images.row_count();
+        // for (size_t i = 0; i < batch_size; i++) {
+        //     int pred = static_cast<int>(predictions(0, i));
+        //     double conf = output(pred, i);
+        //     std::cout << "Sample " << i << ": " << conf << "\n";
+        // }
         
         // Model evaluation
         double loss = mlp.compute_loss(test_labels, output);

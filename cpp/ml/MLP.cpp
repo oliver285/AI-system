@@ -326,8 +326,14 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
         Matrix MLP::get_predictions(const Matrix& A) {
             // Validate input matrix
             if (A.row_count() == 0 || A.col_count() == 0) {
-                std::cerr << "Empty probability matrix in get_predictions\n";
-                return Matrix(1, 0);  // Return empty matrix
+                std::cerr << "Empty probability matrix\n";
+                return Matrix(1, 0);
+            }
+            
+            // Add explicit binary classification check
+            if (A.row_count() < 2) {
+                std::cerr << "Output matrix needs >=2 rows for classification\n";
+                return Matrix(1, 0);
             }
         
             size_t batch_size = A.col_count();

@@ -40,7 +40,7 @@ DEPS := $(OBJS:.o=.d)
 
 # Main targets
 TARGET := $(TARGET_DIR)/app
-EXECUTABLES := $(TARGET_DIR)/main $(TARGET_DIR)/basicai
+EXECUTABLES := $(TARGET_DIR)/main $(TARGET_DIR)/basicai $(TARGET_DIR)/tests
 
 # BasicAI application
 $(TARGET_DIR)/basicai: $(BUILD_DIR)/apps/basicai.o $(filter-out $(TEST_OBJS), $(OBJS))
@@ -61,12 +61,28 @@ $(TARGET_DIR)/main: $(filter-out $(TEST_OBJS), $(OBJS))
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Test executable
-$(TARGET_DIR)/tests: $(TEST_OBJS) $(filter-out $(BUILD_DIR)/apps/main.o, $(OBJS))
+# $(TARGET_DIR)/tests: $(TEST_OBJS) $(filter-out $(BUILD_DIR)/apps/main.o, $(OBJS))
+# 	@mkdir -p $(@D)
+# 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(GTEST_LIBS)
+
+# Test target (alias for run_tests)
+test: run_tests
+
+# Run tests with optional filter
+run_tests: $(TARGET_DIR)/tests
+	@echo "Running all unit tests..."
+	@./$(TARGET_DIR)/tests
+	@echo "\nTests completed!"
+
+# Run specific test case (make test-case TEST=MatrixTest)
+test-case: $(TARGET_DIR)/tests
+	@echo "Running test case: $(TEST)"
+	@./$(TARGET_DIR)/tests --gtest_filter=$(TEST)*
+
+# Test executable
+$(TARGET_DIR)/tests: $(TEST_OBJS) $(filter-out $(BUILD_DIR)/apps/%.o, $(OBJS))
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(GTEST_LIBS)
-
-run_tests: $(TARGET_DIR)/tests
-	./$(TARGET_DIR)/tests
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET_DIR)
