@@ -376,41 +376,35 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
             }
             return predictions;
         }
-        double MLP::get_accuracy(const Matrix& predictions, const Matrix& labels) {
-            // Validate input dimensions
-            if (predictions.row_count() != 1 || labels.row_count() != 1) {
-                std::cerr << "Inputs must be row vectors\n";
-                return -1.0;  // Error indicator
-            }
-            
-            const size_t batch_size = predictions.col_count();
-            if (batch_size != labels.col_count()) {
-                std::cerr << "Batch size mismatch: predictions " << batch_size
-                          << " vs labels " << labels.col_count() << "\n";
-                return -1.0;
-            }
-            
-            if (batch_size == 0) {
-                std::cerr << "Empty batch in accuracy calculation\n";
-                return 0.0;  // Defined behavior for empty input
+        double MLP::get_accuracy(const Matrix& predictions, const Matrix& Y_true) {
+            // Ensure predictions are row vectors
+            if (predictions.row_count() != 1) {
+                std::cerr << "get_accuracy: Predictions must be 1 x batch_size\n";
+                return 0.0;
             }
         
-            Error err = NO_ERROR;
-            size_t correct_count = 0;
+            // Convert Y_true to row vector if it's a column vector
+            Matrix Y_row;
+            if (Y_true.row_count() > 1 && Y_true.col_count() == 1) {
+                Y_row = Y_true.transpose();  // Convert column to row
+            } else {
+                Y_row = Y_true;  // Already in row format
+            }
         
-            for (size_t i = 0; i < batch_size; ++i) {
-                const double pred = predictions(0, i, &err);
-                const double label = labels(0, i, &err);
-                if (checkError(err)) return -1.0;
-                
-                // Handle both integer and one-hot encoded labels
-                if (std::abs(pred - label) < 1e-6 || 
-                    std::abs(pred - static_cast<int>(label)) < 1e-6) {
-                    correct_count++;
+            if (Y_row.row_count() != 1) {
+                std::cerr << "Y_true must be convertible to 1 x batch_size. Got: "
+                          << Y_true.row_count() << " x " << Y_true.col_count() << "\n";
+                return 0.0;
+            }
+        
+            // Proceed with accuracy calculation...
+            size_t correct = 0;
+            for (size_t i = 0; i < predictions.col_count(); ++i) {
+                if (predictions(0, i) == Y_row(0, i)) {
+                    correct++;
                 }
             }
-            
-            return static_cast<double>(correct_count) / batch_size;
+            return static_cast<double>(correct) / predictions.col_count();
         }
 
         void shuffle_data(Matrix& X, Matrix& Y) {
@@ -440,14 +434,34 @@ Matrix MLP::one_hot(const Matrix& Y, size_t num_classes) {
         double MLP::cross_entropy_loss(const Matrix& Y_pred, const Matrix& Y_true) {
             double loss = 0.0;
             size_t batch_size = Y_pred.col_count();
-            
-            for (size_t i = 0; i < batch_size; ++i) {
-                int label = static_cast<int>(Y_true(0, i));
-                double prob = Y_pred(label, i);
-                loss += -std::log(std::max(prob, 1e-8));  // Avoid log(0)
+            Error err = NO_ERROR;
+        
+            // Shape validation
+            if (Y_true.row_count() != 1 || Y_true.col_count() != batch_size) {
+                std::cerr << "Y_true must be 1 x batch_size. Got: " 
+                          << Y_true.row_count() << " x " << Y_true.col_count() << "\n";
+                return 0.0;
             }
+        
+            for (size_t i = 0; i < batch_size; ++i) {
+                int label = static_cast<int>(Y_true(0, i, &err));
+                if (checkError(err)) return 0.0;
+        
+                if (label < 0 || static_cast<size_t>(label) >= Y_pred.row_count()) {
+                    std::cerr << "Invalid label: " << label << " at index " << i 
+                              << " (Y_pred has " << Y_pred.row_count() << " rows)\n";
+                    return 0.0;
+                }
+        
+                double prob = Y_pred(label, i, &err);
+                if (checkError(err)) return 0.0;
+        
+                loss += -std::log(std::max(prob, 1e-8));
+            }
+        
             return loss / batch_size;
         }
+        
 
 
 void MLP::gradient_descent(Matrix& X, Matrix& Y, size_t iterations, double learning_rate) {

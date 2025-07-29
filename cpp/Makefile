@@ -40,7 +40,13 @@ DEPS := $(OBJS:.o=.d)
 
 # Main targets
 TARGET := $(TARGET_DIR)/app
-EXECUTABLES := $(TARGET_DIR)/main
+EXECUTABLES := $(TARGET_DIR)/main $(TARGET_DIR)/basicai
+
+# BasicAI application
+$(TARGET_DIR)/basicai: $(BUILD_DIR)/apps/basicai.o $(filter-out $(TEST_OBJS), $(OBJS))
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
 
 all: $(EXECUTABLES)
 
