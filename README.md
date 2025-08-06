@@ -77,8 +77,11 @@ Requires OpenCV
 C++17 (for filesystem, chrono, etc.)
 
 Compile:
+
 Make
+
 ./build/bin/basicai
+
 Make tests
 
 
