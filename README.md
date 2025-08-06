@@ -77,13 +77,10 @@ Requires OpenCV
 C++17 (for filesystem, chrono, etc.)
 
 Compile:
+Make
+./build/bin/basicai
+Make tests
 
-bash
-Copy
-Edit
-g++ -std=c++17 -O2 main.cpp MLP.cpp matrix.cpp image_processor.cpp -o crack_detector `pkg-config --cflags --libs opencv4`
-Run sample:
-Uncomment main() in the code (e.g., in main.cpp) to test training and data loading.
 
 🧠 Training
 Uses forward pass, loss computation, backpropagation, and momentum update
