@@ -2,9 +2,7 @@
 This project implements a lightweight machine learning pipeline from scratch (no ML frameworks) to classify concrete cracks in grayscale images using a custom-built Multilayer Perceptron (MLP) and Matrix library. It is optimized for educational and embedded use cases where fine control, low overhead, and high transparency are crucial.
 
 📁 Project Structure
-graphql
-Copy
-Edit
+
 .
 ├── matrix.h / matrix.cpp         # Custom matrix class with safe access, activation, math ops
 ├── MLP.h / MLP.cpp               # Custom MLP implementation with forward/backward propagation
@@ -110,40 +108,23 @@ Gradient norms (dW1, dW2)
 Parameter ranges (W1, b1, etc.)
 
 ✅ Default (build all)
-bash
-Copy
-Edit
-make
+
 Builds all executables:
 
-main – primary executable
-
-basicai – secondary application
+basicai – primary executable
 
 tests – test suite using GoogleTest
 
 🚀 Run Executables
-Run Main App
-bash
-Copy
-Edit
-./build/bin/main
-Run BasicAI
-bash
-Copy
-Edit
 ./build/bin/basicai
+
+
 🧪 Running Tests
 Run All Tests
-bash
-Copy
-Edit
+
+
 make test
 or
-
-bash
-Copy
-Edit
 make run_tests
 
 🛡️ Error Handling
