@@ -1,27 +1,6 @@
 🧠 Crack Detection via Custom MLP Neural Network
 This project implements a lightweight machine learning pipeline from scratch (no ML frameworks) to classify concrete cracks in grayscale images using a custom-built Multilayer Perceptron (MLP) and Matrix library. It is optimized for educational and embedded use cases where fine control, low overhead, and high transparency are crucial.
 
-📁 Project Structure
-
-.
-├── matrix.h / matrix.cpp         # Custom matrix class with safe access, activation, math ops
-├── MLP.h / MLP.cpp               # Custom MLP implementation with forward/backward propagation
-├── image_processor.h / .cpp     # Image loading, preprocessing, and dataset handling
-├── main.cpp                      # Sample entrypoint (commented/test code)
-├── crack_images.csv              # (Generated) flattened dataset
-├── crack_labels.csv              # (Generated) corresponding labels
-🏗️ Key Features
-🧮 Matrix Library
-Safe element access with error checking (operator() and no_bounds_check)
-
-Matrix operations: multiply, add, subtract, scalar ops, transpose, Hadamard product
-
-Activation functions: ReLU, Leaky ReLU, Softmax
-
-Statistics: mean, sum, min, max, Frobenius norm
-
-Gradient support: row-wise mean/std, element-wise subtraction, clipping
-
 🤖 MLP Class
 Two-layer MLP (input → hidden → output) with:
 
@@ -49,23 +28,6 @@ Converts to flattened Matrix format
 Can label folders as classes (e.g., Cracked, NonCracked)
 
 Can shuffle datasets and save to CSV
-
-🧪 Example Dataset
-To train the model:
-
-bash
-Copy
-Edit
-📂 ../datasets/
-   ├── Cracked/
-   │    ├── img1.jpg
-   │    ├── img2.jpg
-   └── NonCracked/
-        ├── imgA.jpg
-        ├── imgB.jpg
-Cracked → label 1
-
-NonCracked → label 0
 
 🚀 Getting Started
 Install dependencies:
