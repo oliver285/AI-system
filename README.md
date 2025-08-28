@@ -42,7 +42,7 @@ Make
 
 ./build/bin/basicai
 
-Make tests
+Make run_tests
 
 
 🧠 Training
