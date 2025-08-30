@@ -10,67 +10,82 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
-// ERROR enum OUTSIDE class
+
+// ERROR enum outside class
 enum Error {
     NO_ERROR = 0,
     INDEX_OUT_OF_RANGE,
     DIMENSION_MISMATCH,
+    DIVIDE_BY_ZERO
 };
 
 class Matrix {
     size_t rows, cols;
-    std::vector<double> data;
-    
+    std::vector<float> data;
+
 public:
     // Constructors
     Matrix();
     Matrix(size_t r, size_t c);
 
-
-// Modify accessors to return error status
-double& operator()(size_t row, size_t col, Error* err = nullptr);
-const double& operator()(size_t row, size_t col, Error* err = nullptr) const;
+    // Accessors with optional error reporting
+    float& operator()(size_t row, size_t col, Error* err = nullptr);
+    const float& operator()(size_t row, size_t col, Error* err = nullptr) const;
+    Matrix operator+(float val) const;
     size_t row_count() const;
     size_t col_count() const;
     size_t size() const;
-    const double& no_bounds_check(size_t i) const;
-    double& no_bounds_check(size_t i);
-
+    const float& no_bounds_check(size_t i) const;
+    float& no_bounds_check(size_t i);
+    void add_inplace(float val);
     // Matrix operations
     static Matrix random(size_t r, size_t c);
-    double frobenius_norm() const;
-    Matrix clip(double min_val, double max_val) const;
-    Matrix add(const Matrix& other,Error* err= nullptr) const;
-    Matrix subtract(const Matrix& other,Error* err= nullptr) const;
-    void scale_inplace(double scalar);
-    Matrix multiply_scalar(double scalar) const;
-    Matrix subtract_scalar(double scalar) const;
-    static Matrix multiply(const Matrix& A, const Matrix& B,Error* err= nullptr);
+    float frobenius_norm() const;
+    Matrix clip(float min_val, float max_val) const;
+    Matrix add(const Matrix& other, Error* err = nullptr) const;
+    Matrix subtract(const Matrix& other, Error* err = nullptr) const;
+    void scale_inplace(float scalar);
+    Matrix multiply_scalar(float scalar) const;
+    Matrix divide_scalar(float scalar,Error* err) const;
+    Matrix subtract_scalar(float scalar) const;
+    static Matrix multiply(const Matrix& A, const Matrix& B, Error* err = nullptr);
+    static Matrix divide(const Matrix& A, const Matrix& B, Error* err = nullptr);
     Matrix transpose() const;
     Matrix hadamard_product(const Matrix& A, Error* err = nullptr) const;
-
+     Matrix hadamard_division(const Matrix& A, Error* err = nullptr) const;
+    void multiply_scalar_inplace(float scalar);  
     // Activation functions
     Matrix RELU() const;
     Matrix deriv_RELU() const;
-    Matrix leaky_RELU(double alpha = 0.01) const;
-    Matrix deriv_leaky_RELU(double alpha = 0.01) const;
+    Matrix leaky_RELU(float alpha = 0.01f) const;
+    Matrix deriv_leaky_RELU(float alpha = 0.01f) const;
     static Matrix softmax(const Matrix& A);
 
     // Statistical operations
-    double sum() const;
-    double min() const;
-    double max() const;
-    double mean() const;
-    Matrix& scale(double factor);
+    float sum() const;
+    float min() const;
+    float max() const;
+    float mean() const;
+    Matrix& scale(float factor);
     static Matrix sum_cols(const Matrix& A);
-   Matrix rowwise_mean() const;
-  Matrix rowwise_std(double epsilon = 1e-8) const;
-  Matrix& subtract_rowwise(const Matrix& vec,Error* err = nullptr);
+    Matrix rowwise_mean() const;
+    Matrix rowwise_std(float epsilon = 1e-8f) const;
+    Matrix& subtract_rowwise(const Matrix& vec, Error* err = nullptr);
 
+    // Slice columns safely (start..end inclusive)
+    Matrix slice_cols(size_t start, size_t end,Error *err) const;
+    Matrix sqrt() const;
+    void sqrt_inplace();
     // Utility functions
-    void fill(double value);
-    void I();
+    void fill(float value);
+    void I(); // identity
     void print() const;
+    
+void add_inplace(const Matrix& other,float val);
+void add_inplace_reg(float val);
+void subtract_inplace(const Matrix& other,float val);
+void subtract_inplace_element(const Matrix& other);
+void hadamard_division_inplace(const Matrix& A, Error* err);
 };
 
 #endif // MATRIX_H
