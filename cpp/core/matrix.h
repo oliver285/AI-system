@@ -86,6 +86,7 @@ void add_inplace_reg(float val);
 void subtract_inplace(const Matrix& other,float val);
 void subtract_inplace_element(const Matrix& other);
 void hadamard_division_inplace(const Matrix& A, Error* err);
+void add_inplace_squared(const Matrix& other ,float val);
 };
 
 #endif // MATRIX_H

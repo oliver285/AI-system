@@ -117,9 +117,9 @@ Matrix MLP::forward_prop(const Matrix &X)
     Z1 = Matrix::multiply(W1, X, &err);
     if (checkError(err))
         return Matrix();
-    for (size_t j = 0; j < Z1.col_count(); ++j)
-        for (size_t i = 0; i < Z1.row_count(); ++i)
-            Z1(i, j) += b1(0, i); // broadcast along batch
+    // for (size_t j = 0; j < Z1.col_count(); ++j)
+    //     for (size_t i = 0; i < Z1.row_count(); ++i)
+    //         Z1(i, j) += b1(0, i); // broadcast along batch
 
     // Validate bias dimensions before addition
     if (Z1.row_count() != b1.col_count())
@@ -262,9 +262,10 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 
     // Step 4: db2 = mean of dZ2 across batch
     db2 = Matrix(1, dZ2.row_count());
+    float sum;
     for (size_t i = 0; i < dZ2.row_count(); ++i)
     {
-        double sum = 0.0;
+         sum = 0.0f;
         for (size_t j = 0; j < batch_size; ++j)
         {
             sum += dZ2(i, j, &err); // Safe access
@@ -332,101 +333,87 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 // db1 = db1.multiply_scalar(100.0);
 // db2 = db2.multiply_scalar(100.0);
 
-void MLP::update_params(float learning_rate)
-{
+
+
+// Helper function (keep it inline for performance)
+ void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+                               float lr_corrected, float epsilon, Error* err) {
+    s.sqrt_inplace();
+    s.add_inplace_reg(epsilon);
+    v.multiply_scalar_inplace(lr_corrected); // In-place scaling
+    v.hadamard_division_inplace(s, err);     // v = lr_corrected * v / (sqrt(s) + epsilon)
+    if (checkError(*err)) return;
+    param.subtract_inplace_element(v);        // In-place subtraction
+}
+
+void MLP::update_params(float learning_rate) {
     const float beta1 = 0.9f;
     const float beta2 = 0.999f;
     const float epsilon = 1e-8f;
     static int t = 0;
-    t++; // increment timestep
+    t++;
 
     Error err = NO_ERROR;
 
-    //     std::cout << "vW1: " << vW1.row_count() << " x " << vW1.col_count() << std::endl;
-    // std::cout << "dW1: " << dW1.row_count() << " x " << dW1.col_count()  << std::endl;
+    // Precompute factors once
+    const float v_correction = 1.0f / (1.0f - std::pow(beta1, t));
+    const float s_correction = 1.0f / (1.0f - std::pow(beta2, t));
+    const float lr_corrected = learning_rate * v_correction;
+    const float beta1_denom = 1.0f - beta1;
+    const float beta2_denom = 1.0f - beta2;
 
-    // ---- Momentum updates (v) ----
+    // Update first moment (momentum)
     vW1.scale_inplace(beta1);
-    vW1.add_inplace(dW1, 1 - beta1); // vW1 = beta1*vW1 + (1-beta1)*dW1
-
+    vW1.add_inplace(dW1, beta1_denom);
+    
     vW2.scale_inplace(beta1);
-    vW2.add_inplace(dW2, 1 - beta1);
-
+    vW2.add_inplace(dW2, beta1_denom);
+    
     vb1.scale_inplace(beta1);
-    vb1.add_inplace(db1, 1 - beta1);
-
+    vb1.add_inplace(db1, beta1_denom);
+    
     vb2.scale_inplace(beta1);
-    vb2.add_inplace(db2, 1 - beta1);
+    vb2.add_inplace(db2, beta1_denom);
 
-    // ---- Variance updates (s) ----
+    // Update second moment (variance) - using corrected add_inplace_squared
     sW1.scale_inplace(beta2);
-    Matrix tmpW1 = dW1.hadamard_product(dW1, &err);
-    if (checkError(err))
-        return;
-    sW1.add_inplace(tmpW1, 1 - beta2);
-
+    sW1.add_inplace_squared(dW1, beta2_denom);
+    
     sW2.scale_inplace(beta2);
-    Matrix tmpW2 = dW2.hadamard_product(dW2, &err);
-    if (checkError(err))
-        return;
-    sW2.add_inplace(tmpW2, 1 - beta2);
-
+    sW2.add_inplace_squared(dW2, beta2_denom);
+    
     sb1.scale_inplace(beta2);
-    Matrix tmpb1 = db1.hadamard_product(db1, &err);
-    if (checkError(err))
-        return;
-    sb1.add_inplace(tmpb1, 1 - beta2);
-
+    sb1.add_inplace_squared(db1, beta2_denom);
+    
     sb2.scale_inplace(beta2);
-    Matrix tmpb2 = db2.hadamard_product(db2, &err);
-    if (checkError(err))
-        return;
-    sb2.add_inplace(tmpb2, 1 - beta2);
+    sb2.add_inplace_squared(db2, beta2_denom);
 
-    // ---- Bias correction ----
-    float v_denom = 1.0f - std::pow(beta1, t);
-    float s_denom = 1.0f - std::pow(beta2, t);
+    // Bias correction
+    vW1.scale_inplace(v_correction);
+    vW2.scale_inplace(v_correction);
+    vb1.scale_inplace(v_correction);
+    vb2.scale_inplace(v_correction);
 
-    // Divide in-place to save memory
-    vW1.scale_inplace(1.0f / v_denom);
-    vW2.scale_inplace(1.0f / v_denom);
-    vb1.scale_inplace(1.0f / v_denom);
-    vb2.scale_inplace(1.0f / v_denom);
+    sW1.scale_inplace(s_correction);
+    sW2.scale_inplace(s_correction);
+    sb1.scale_inplace(s_correction);
+    sb2.scale_inplace(s_correction);
 
-    sW1.scale_inplace(1.0f / s_denom);
-    sW2.scale_inplace(1.0f / s_denom);
-    sb1.scale_inplace(1.0f / s_denom);
-    sb2.scale_inplace(1.0f / s_denom);
+    // Parameter updates with error checking
+    update_layer_params(W1, vW1, sW1, lr_corrected, epsilon, &err);
+    if (checkError(err)) return;
 
-    // ---- Parameter updates ----
-    sW1.sqrt_inplace();
-    sW1.add_inplace_reg(epsilon);            // add epsilon element-wise
-    W1.hadamard_division_inplace(sW1, &err); // W1 / denom
-    if (checkError(err))
-        return;
-    W1.subtract_inplace_element(vW1.multiply_scalar(learning_rate));
+    update_layer_params(W2, vW2, sW2, lr_corrected, epsilon, &err);
+    if (checkError(err)) return;
 
-    sW2.sqrt_inplace();
-    sW2.add_inplace_reg(epsilon);
-    W2.hadamard_division_inplace(sW2, &err);
-    if (checkError(err))
-        return;
-    W2.subtract_inplace_element(vW2.multiply_scalar(learning_rate));
+    update_layer_params(b1, vb1, sb1, lr_corrected, epsilon, &err);
+    if (checkError(err)) return;
 
-    sb1.sqrt_inplace();
-    sb1.add_inplace_reg(epsilon);
-    b1.hadamard_division_inplace(sb1, &err);
-    if (checkError(err))
-        return;
-    b1.subtract_inplace_element(vb1.multiply_scalar(learning_rate));
-
-    sb2.sqrt_inplace();
-    sb2.add_inplace_reg(epsilon);
-    b2.hadamard_division_inplace(sb2, &err);
-    if (checkError(err))
-        return;
-    b2.subtract_inplace_element(vb2.multiply_scalar(learning_rate));
+    update_layer_params(b2, vb2, sb2, lr_corrected, epsilon, &err);
+    if (checkError(err)) return;
 }
+
+
 
 // Matrix MLP::get_predictions(const Matrix& A) {
 //     // A should be a (num_classes, batch_size) matrix of probabilities
@@ -653,6 +640,8 @@ void MLP::gradient_descent(Matrix &X, Matrix &Y, size_t epochs, float learning_r
     X = X.multiply_scalar(1.0f / 255.0f);
 
     float current_lr;
+     float accuracy;
+     float loss;
     for (size_t epoch = 0; epoch < epochs; ++epoch)
     {
         // Shuffle dataset at the start of each epoch
@@ -675,13 +664,18 @@ void MLP::gradient_descent(Matrix &X, Matrix &Y, size_t epochs, float learning_r
 
         // Evaluate epoch performance
         Matrix predictions = get_predictions(A2);
-        float accuracy = get_accuracy(predictions, Y);
-        float loss = cross_entropy_loss(A2, Y);
+         accuracy = get_accuracy(predictions, Y);
+         loss = cross_entropy_loss(A2, Y);
 
-        std::cout << "Epoch " << epoch
+        // std::cout << "Epoch " << epoch
+        //           << " | Loss: " << loss
+        //           << " | Acc: " << accuracy
+        //           << " | LR: " << current_lr
+        //           << "\n";
+    }
+         std::cout << "Epoch " << epochs
                   << " | Loss: " << loss
                   << " | Acc: " << accuracy
                   << " | LR: " << current_lr
                   << "\n";
-    }
 }

@@ -576,6 +576,13 @@ void Matrix::subtract_inplace_element(const Matrix& other) {
     }
 }
 
+
+void Matrix::add_inplace_squared(const Matrix& other, float alpha) {
+    assert(rows == other.rows && cols == other.cols);
+    for (size_t i = 0; i < data.size(); ++i) {
+        data[i] += alpha * (other.data[i] * other.data[i]); // Correct: add squared gradients
+    }
+}
         
    
     

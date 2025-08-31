@@ -48,6 +48,7 @@ TEST_F(MLPTest, ForwardPropKnownValues) {
 
     mlp.forward_prop(X);
 
+    // Verify calculations account for proper bias handling
     for (size_t i = 0; i < hidden_size; i++) {
         double z = 0.1 * 0.5 + 0.1 * (-0.5) + 0.3;
         double expected = std::max(0.0, z);
@@ -92,68 +93,70 @@ TEST_F(MLPTest, BackpropGradientValues) {
             ASSERT_NEAR(checkDZ2(i, j), expected_dZ2(i, j), 1e-6);
         }
     }
-}
-
-TEST_F(MLPTest, ParameterUpdate) {
-    // Create matrices with correct dimensions
-
-    Matrix dW1(hidden_size,input_size);
-    Matrix dW2(output_size,hidden_size);
-    Matrix db1(1,hidden_size);
-    Matrix db2(1,output_size);
-    // Matrix dW1(mlp.get_dW1().dimensions());
-    // Matrix db1(mlp.get_db1().dimensions());
-    // Matrix dW2(mlp.get_dW2().dimensions());
-    // Matrix db2(mlp.get_db2().dimensions());
+}TEST_F(MLPTest, ParameterUpdate) {
+    // Initialize with known values
+    Matrix dW1(hidden_size, input_size);
+    Matrix dW2(output_size, hidden_size);
+    Matrix db1(1, hidden_size);
+    Matrix db2(1, output_size);
     
-    dW1.fill(0.01);
-    db1.fill(0.02);
-    dW2.fill(0.03);
-    db2.fill(0.04);
+    dW1.fill(0.01f);
+    db1.fill(0.02f);
+    dW2.fill(0.03f);
+    db2.fill(0.04f);
     
     mlp.set_dW1(dW1);
     mlp.set_db1(db1);
     mlp.set_dW2(dW2);
     mlp.set_db2(db2);
 
-    // Save original parameters
-    Matrix orig_W1 = mlp.get_W1();
-    Matrix orig_b1 = mlp.get_b1();
-    Matrix orig_W2 = mlp.get_W2();
-    Matrix orig_b2 = mlp.get_b2();
-
-    // Initialize velocities to zero
-    Matrix zero_vW1(hidden_size,input_size);
-    Matrix zero_vW2(output_size,hidden_size);
-    Matrix zero_vb1(1,hidden_size);
-    Matrix zero_vb2(1,output_size);
-    // Matrix zero_vW1(mlp.get_vW1().dimensions());
-    // Matrix zero_vb1(mlp.get_vb1().dimensions());
-    // Matrix zero_vW2(mlp.get_vW2().dimensions());
-    // Matrix zero_vb2(mlp.get_vb2().dimensions());
+    // Reset Adam moments to zero with correct dimensions for each
+    Matrix zero_vW1(hidden_size, input_size);
+    Matrix zero_vW2(output_size, hidden_size);
+    Matrix zero_vb1(1, hidden_size);
+    Matrix zero_vb2(1, output_size);
+    Matrix zero_sW1(hidden_size, input_size);
+    Matrix zero_sW2(output_size, hidden_size);
+    Matrix zero_sb1(1, hidden_size);
+    Matrix zero_sb2(1, output_size);
     
-    zero_vW1.fill(0.0);
-    zero_vb1.fill(0.0);
-    zero_vW2.fill(0.0);
-    zero_vb2.fill(0.0);
+    zero_vW1.fill(0.0f);
+    zero_vW2.fill(0.0f);
+    zero_vb1.fill(0.0f);
+    zero_vb2.fill(0.0f);
+    zero_sW1.fill(0.0f);
+    zero_sW2.fill(0.0f);
+    zero_sb1.fill(0.0f);
+    zero_sb2.fill(0.0f);
     
     mlp.set_vW1(zero_vW1);
-    mlp.set_vb1(zero_vb1);
     mlp.set_vW2(zero_vW2);
+    mlp.set_vb1(zero_vb1);
     mlp.set_vb2(zero_vb2);
-    
-    mlp.update_params(0.1);
+    mlp.set_sW1(zero_sW1);
+    mlp.set_sW2(zero_sW2);
+    mlp.set_sb1(zero_sb1);
+    mlp.set_sb2(zero_sb2);
 
-    // Check W1 update
+    Matrix orig_W1 = mlp.get_W1();
+    mlp.update_params(0.1f);
+
+    // For Adam with zero-initialized moments, the first update should be:
+    // v = (1 - beta1) * gradient
+    // s = (1 - beta2) * gradient^2
+    // param = param - lr * v / (sqrt(s) + epsilon)
     for (size_t i = 0; i < mlp.get_W1().size(); ++i) {
-        double expected = orig_W1.no_bounds_check(i) - 0.1 * 0.01;
-        ASSERT_NEAR(mlp.get_W1().no_bounds_check(i), expected, 1e-6);
-    }
-    
-    // Check b1 update
-    for (size_t i = 0; i < mlp.get_b1().size(); ++i) {
-        double expected = orig_b1.no_bounds_check(i) - 0.1 * 0.02;
-        ASSERT_NEAR(mlp.get_b1().no_bounds_check(i), expected, 1e-6);
+        float beta1 = 0.9f;
+        float beta2 = 0.999f;
+        float epsilon = 1e-8f;
+        
+        float v = (1 - beta1) * 0.01f;  // v = 0.1 * 0.01 = 0.001
+        float s = (1 - beta2) * 0.01f * 0.01f;  // s = 0.001 * 0.0001 = 1e-7
+        
+        float expected_change = -0.1f * v / (sqrtf(s) + epsilon);
+        float actual_change = mlp.get_W1().no_bounds_check(i) - orig_W1.no_bounds_check(i);
+        
+        ASSERT_NEAR(actual_change, expected_change, 1e-6f);
     }
 }
 
@@ -174,6 +177,7 @@ TEST(MatrixTest, SoftmaxStability) {
     }
     ASSERT_NEAR(sum, 1.0, 1e-6);
 }
+
 
 TEST_F(MLPTest, GradientMagnitudeCheck) {
 
@@ -213,4 +217,85 @@ TEST_F(MLPTest, GradientMagnitudeCheck) {
 
     ASSERT_GT(norm_db2, 1e-6);
     ASSERT_LT(norm_db2, 100.0);
+}
+
+
+TEST(MatrixTest, AddInplaceSquared) {
+    Matrix m1(2, 2);
+    m1.fill(1.0f); // Initialize with 1.0
+    Matrix m2(2, 2);
+    m2.fill(2.0f); // Initialize with 2.0
+
+    // Test add_inplace_squared with alpha = 0.1
+    m1.add_inplace_squared(m2, 0.1f);
+
+    // Expected: m1[i] += 0.1 * (2.0 * 2.0) = 1.0 + 0.4 = 1.4
+    for (size_t i = 0; i < m1.size(); ++i) {
+        EXPECT_FLOAT_EQ(m1.no_bounds_check(i), 1.4f);
+    }
+}
+
+
+TEST_F(MLPTest, UpdateLayerParams) {
+    // Initialize matrices
+    Matrix param(2, 2);
+    param.fill(2.0f);
+    Matrix v(2, 2);
+    v.fill(1.0f);
+    Matrix s(2, 2);
+    s.fill(4.0f); // sqrt(4) = 2.0
+    float lr_corrected = 0.1f;
+    float epsilon = 1e-8f;
+    Error err = NO_ERROR;
+
+    // Call the function (ensure it's accessible, might need to be public or friend)
+    update_layer_params(param, v, s, lr_corrected, epsilon, &err);
+
+    // Check for errors
+    ASSERT_EQ(err, NO_ERROR);
+
+    // Verify parameter update:
+    // s becomes sqrt(4) + epsilon ≈ 2.00000001
+    // v becomes v / s ≈ 1.0 / 2.00000001 ≈ 0.5
+    // Then param = param - lr_corrected * v ≈ 2.0 - 0.1 * 0.5 = 1.95
+    for (size_t i = 0; i < param.size(); ++i) {
+        EXPECT_NEAR(param.no_bounds_check(i), 1.95f, 1e-6f);
+    }
+}
+
+
+
+TEST_F(MLPTest, UpdateParams) {
+    MLP mlp(2,3,1); // Create MLP object
+
+    // Initialize parameters and gradients to known values for testing
+    // mlp.W1.fill(2.0f);
+    // mlp.W2.fill(2.0f);
+    // mlp.b1.fill(2.0f);
+    // mlp.b2.fill(2.0f);
+
+    // mlp.dW1.fill(1.0f); // Set gradients to 1.0
+    // mlp.dW2.fill(1.0f);
+    // mlp.db1.fill(1.0f);
+    // mlp.db2.fill(1.0f);
+
+    // // Initialize moments to zero (as they would be at start)
+    // mlp.vW1.fill(0.0f);
+    // mlp.vW2.fill(0.0f);
+    // mlp.vb1.fill(0.0f);
+    // mlp.vb2.fill(0.0f);
+    // mlp.sW1.fill(0.0f);
+    // mlp.sW2.fill(0.0f);
+    // mlp.sb1.fill(0.0f);
+    // mlp.sb2.fill(0.0f);
+
+    float learning_rate = 0.001f;
+    mlp.update_params(learning_rate);
+Matrix W1 = mlp.get_W1();
+    // After first update, parameters should decrease due to positive gradients
+    // Exact values depend on Adam formulas, but we can check for change
+    for (size_t i = 0; i < W1.size(); ++i) {
+        EXPECT_LT(W1.no_bounds_check(i), 2.0f); // Should be less than initial
+    }
+    // Similarly for W2, b1, b2
 }

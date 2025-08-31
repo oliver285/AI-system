@@ -43,47 +43,28 @@ int main() {
         // Shuffle combined dataset
         processor.shuffle_dataset(all_images, all_labels);
 
-        // // Convert labels to row vector
-        // Matrix all_labels_row(1, total_samples);
-        // for (size_t i = 0; i < total_samples; ++i)
-        //     all_labels_row(0, i) = all_labels(i, 0);
-
-
-
-
         // Split into train/test sets
         size_t train_size = total_samples * 0.8;
         size_t test_size = total_samples - train_size;
 
         Matrix train_images(train_size, input_size);
-        // Matrix train_labels(1, train_size);
-
-// Keep labels as column vectors and update splitting:
-Matrix train_labels(train_size, 1);  // Keep as column vector
-Matrix test_labels(test_size, 1);    // Keep as column vector
-
-for (size_t i = 0; i < train_size; ++i) {
-    train_labels(i, 0) = all_labels(i, 0);  // Direct assignment
-}
-
-for (size_t i = 0; i < test_size; ++i) {
-    test_labels(i, 0) = all_labels(i + train_size, 0);
-}
-
+        Matrix train_labels(train_size, 1);
         Matrix test_images(test_size, input_size);
-        // Matrix test_labels(1, test_size);
+        Matrix test_labels(test_size, 1);
 
-        // for (size_t i = 0; i < train_size; ++i) {
-        //     for (size_t j = 0; j < input_size; ++j)
-        //         train_images(i, j) = all_images(i, j);
-        //     train_labels(0, i) = all_labels_row(0, i);
-        // }
+        // Copy training data
+        for (size_t i = 0; i < train_size; ++i) {
+            for (size_t j = 0; j < input_size; ++j)
+                train_images(i, j) = all_images(i, j);
+            train_labels(i, 0) = all_labels(i, 0);
+        }
 
-        // for (size_t i = 0; i < test_size; ++i) {
-        //     for (size_t j = 0; j < input_size; ++j)
-        //         test_images(i, j) = all_images(i + train_size, j);
-        //     test_labels(0, i) = all_labels_row(0, i + train_size);
-        // }
+        // Copy test data
+        for (size_t i = 0; i < test_size; ++i) {
+            for (size_t j = 0; j < input_size; ++j)
+                test_images(i, j) = all_images(i + train_size, j);
+            test_labels(i, 0) = all_labels(i + train_size, 0);
+        }
 
         // Create MLP
         const size_t hidden_size = 256;
@@ -105,31 +86,47 @@ for (size_t i = 0; i < test_size; ++i) {
                 size_t end = std::min(start + batch_size, train_size);
                 size_t current_batch_size = end - start;
 
-                // Slice batch
+                // Get batch
                 Matrix batch_images(current_batch_size, input_size);
                 Matrix batch_labels(1, current_batch_size);
                 for (size_t i = 0; i < current_batch_size; ++i) {
                     for (size_t j = 0; j < input_size; ++j)
                         batch_images(i, j) = train_images(start + i, j);
-                    batch_labels(0, i) = train_labels(0, start + i);
+                    batch_labels(0, i) = train_labels(start + i, 0);  // Fixed indexing
                 }
 
-                // Transpose batch for MLP input
+                // Train on batch - DON'T call gradient_descent, do the steps manually
                 Matrix batch_images_T = batch_images.transpose();
-
-                // Train on this batch
-                mlp.gradient_descent(batch_images_T, batch_labels, 1, 0.01f);
+                Matrix batch_output = mlp.forward_prop(batch_images_T);
+                mlp.back_prop(batch_images_T, batch_labels);
+                mlp.update_params(0.01f);
             }
 
             // Evaluate training performance
             Matrix train_output = mlp.forward_prop(train_images.transpose());
             Matrix train_preds = mlp.get_predictions(train_output);
-            float train_acc = mlp.get_accuracy(train_preds, train_labels.transpose());
-            float train_loss = mlp.cross_entropy_loss(train_output, train_labels);
+            
+            // Convert train_labels to row vector for accuracy calculation
+            Matrix train_labels_row = train_labels.transpose();
+            float train_acc = mlp.get_accuracy(train_preds, train_labels_row);
+            float train_loss = mlp.cross_entropy_loss(train_output, train_labels_row);
 
             std::cout << "Epoch " << epoch + 1
                       << " | Train Loss: " << train_loss
                       << " | Train Acc: " << train_acc << "\n";
+
+            // Optional: Evaluate on test set periodically
+            if ((epoch + 1) % 10 == 0) {
+                Matrix test_output = mlp.forward_prop(test_images.transpose());
+                Matrix test_preds = mlp.get_predictions(test_output);
+                Matrix test_labels_row = test_labels.transpose();
+                float test_acc = mlp.get_accuracy(test_preds, test_labels_row);
+                float test_loss = mlp.cross_entropy_loss(test_output, test_labels_row);
+                
+                std::cout << "Epoch " << epoch + 1
+                          << " | Test Loss: " << test_loss
+                          << " | Test Acc: " << test_acc << "\n";
+            }
         }
 
     } catch (const std::exception& e) {

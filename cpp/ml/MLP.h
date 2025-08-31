@@ -3,10 +3,12 @@
 
 #ifdef UNIT_TESTING
 class MLPTest; // Forward declaration
+  void update_layer_params(param, v, s, lr_corrected, epsilon, err);
 #endif
 
 #include "../core/matrix.h"
-
+ void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+                               float lr_corrected, float epsilon, Error* err);
 class MLP
 {
 private:
@@ -60,6 +62,11 @@ public:
     void set_vb1(const Matrix &m) { vb1 = m; }
     void set_vW2(const Matrix &m) { vW2 = m; }
     void set_vb2(const Matrix &m) { vb2 = m; }
+    void set_sW1(const Matrix &m) { sW1 = m; }
+    void set_sW2(const Matrix &m) { sW2 = m; }
+    void set_sb1(const Matrix &m) { sb1 = m; }
+    void set_sb2(const Matrix &m) { sb2 = m; };
+
 
     // Utility functions
     Matrix one_hot(const Matrix &Y, size_t num_classes = 2);
@@ -71,8 +78,16 @@ public:
     void gradient_descent(Matrix &X, Matrix &Y,
                           size_t iterations, float learning_rate);
 
+// inline void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+//                                float lr_corrected, float epsilon, Error* err);
+
 #ifdef UNIT_TESTING
     friend class MLPTest; // Grant test access
+      void test_update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+                                 float lr_corrected, float epsilon, Error* err) {
+         void update_layer_params(param, v, s, lr_corrected, epsilon, err);
+    }
+      void update_layer_params(param, v, s, lr_corrected, epsilon, err);
 #endif
 };
 
