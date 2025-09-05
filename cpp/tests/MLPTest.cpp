@@ -236,32 +236,32 @@ TEST(MatrixTest, AddInplaceSquared) {
 }
 
 
-TEST_F(MLPTest, UpdateLayerParams) {
-    // Initialize matrices
-    Matrix param(2, 2);
-    param.fill(2.0f);
-    Matrix v(2, 2);
-    v.fill(1.0f);
-    Matrix s(2, 2);
-    s.fill(4.0f); // sqrt(4) = 2.0
-    float lr_corrected = 0.1f;
-    float epsilon = 1e-8f;
-    Error err = NO_ERROR;
+// TEST_F(MLPTest, UpdateLayerParams) {
+//     // Initialize matrices
+//     Matrix param(2, 2);
+//     param.fill(2.0f);
+//     Matrix v(2, 2);
+//     v.fill(1.0f);
+//     Matrix s(2, 2);
+//     s.fill(4.0f); // sqrt(4) = 2.0
+//     float lr_corrected = 0.1f;
+//     float epsilon = 1e-8f;
+//     Error err = NO_ERROR;
 
-    // Call the function (ensure it's accessible, might need to be public or friend)
-    update_layer_params(param, v, s, lr_corrected, epsilon, &err);
+//     // Call the function (ensure it's accessible, might need to be public or friend)
+//     update_layer_params(param, v, s, lr_corrected, epsilon, &err);
 
-    // Check for errors
-    ASSERT_EQ(err, NO_ERROR);
+//     // Check for errors
+//     ASSERT_EQ(err, NO_ERROR);
 
-    // Verify parameter update:
-    // s becomes sqrt(4) + epsilon ≈ 2.00000001
-    // v becomes v / s ≈ 1.0 / 2.00000001 ≈ 0.5
-    // Then param = param - lr_corrected * v ≈ 2.0 - 0.1 * 0.5 = 1.95
-    for (size_t i = 0; i < param.size(); ++i) {
-        EXPECT_NEAR(param.no_bounds_check(i), 1.95f, 1e-6f);
-    }
-}
+//     // Verify parameter update:
+//     // s becomes sqrt(4) + epsilon ≈ 2.00000001
+//     // v becomes v / s ≈ 1.0 / 2.00000001 ≈ 0.5
+//     // Then param = param - lr_corrected * v ≈ 2.0 - 0.1 * 0.5 = 1.95
+//     for (size_t i = 0; i < param.size(); ++i) {
+//         EXPECT_NEAR(param.no_bounds_check(i), 1.95f, 1e-6f);
+//     }
+// }
 
 
 

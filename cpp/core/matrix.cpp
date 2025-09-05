@@ -583,6 +583,13 @@ void Matrix::add_inplace_squared(const Matrix& other, float alpha) {
         data[i] += alpha * (other.data[i] * other.data[i]); // Correct: add squared gradients
     }
 }
+
+void Matrix::add_inplaceMat(const Matrix& other){
+       assert(rows == other.rows && cols == other.cols);
+    for (size_t i = 0; i < data.size(); ++i) {
+        data[i] +=other.data[i]; // Correct: add squared gradients
+    }
+}
         
    
     

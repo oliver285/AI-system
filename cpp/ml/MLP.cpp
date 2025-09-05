@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <cmath>
 
-float t = 0; // timestep
+// float t = 0; // timestep
 
 MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
     : W1(hidden_size, input_size),
@@ -152,9 +152,9 @@ Matrix MLP::forward_prop(const Matrix &X)
     Z2 = Matrix::multiply(W2, A1, &err);
     if (checkError(err))
         return Matrix();
-    for (size_t j = 0; j < Z2.col_count(); ++j)
-        for (size_t i = 0; i < Z2.row_count(); ++i)
-            Z2(i, j) += b2(0, i);
+    // for (size_t j = 0; j < Z2.col_count(); ++j)
+    //     for (size_t i = 0; i < Z2.row_count(); ++i)
+    //         Z2(i, j) += b2(0, i);
 
     // Validate bias dimensions
     if (Z2.row_count() != b2.col_count())
@@ -335,83 +335,173 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 
 
 
-// Helper function (keep it inline for performance)
- void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
-                               float lr_corrected, float epsilon, Error* err) {
-    s.sqrt_inplace();
-    s.add_inplace_reg(epsilon);
-    v.multiply_scalar_inplace(lr_corrected); // In-place scaling
-    v.hadamard_division_inplace(s, err);     // v = lr_corrected * v / (sqrt(s) + epsilon)
-    if (checkError(*err)) return;
-    param.subtract_inplace_element(v);        // In-place subtraction
-}
+// // Helper function (keep it inline for performance)
+//  void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+//                                float lr_corrected, float epsilon, Error* err) {
+//     s.sqrt_inplace();
+//     s.add_inplace_reg(epsilon);
+//     v.multiply_scalar_inplace(lr_corrected); // In-place scaling
+//     v.hadamard_division_inplace(s, err);     // v = lr_corrected * v / (sqrt(s) + epsilon)
+//     if (checkError(*err)) return;
+//     param.subtract_inplace_element(v);        // In-place subtraction
+// }
 
+// void MLP::update_params(float learning_rate) {
+//     const float beta1 = 0.9f;
+//     const float beta2 = 0.999f;
+//     const float epsilon = 1e-8f;
+//     static int t = 0;
+//     t++;
+
+//     Error err = NO_ERROR;
+
+//     // Precompute factors once
+//     const float v_correction = 1.0f / (1.0f - std::pow(beta1, t));
+//     const float s_correction = 1.0f / (1.0f - std::pow(beta2, t));
+//     const float lr_corrected = learning_rate * v_correction;
+//     const float beta1_denom = 1.0f - beta1;
+//     const float beta2_denom = 1.0f - beta2;
+
+//     // Update first moment (momentum)
+//     vW1.scale_inplace(beta1);
+//     vW1.add_inplace(dW1, beta1_denom);
+    
+//     vW2.scale_inplace(beta1);
+//     vW2.add_inplace(dW2, beta1_denom);
+    
+//     vb1.scale_inplace(beta1);
+//     vb1.add_inplace(db1, beta1_denom);
+    
+//     vb2.scale_inplace(beta1);
+//     vb2.add_inplace(db2, beta1_denom);
+
+//     // Update second moment (variance) - using corrected add_inplace_squared
+//     sW1.scale_inplace(beta2);
+//     sW1.add_inplace_squared(dW1, beta2_denom);
+    
+//     sW2.scale_inplace(beta2);
+//     sW2.add_inplace_squared(dW2, beta2_denom);
+    
+//     sb1.scale_inplace(beta2);
+//     sb1.add_inplace_squared(db1, beta2_denom);
+    
+//     sb2.scale_inplace(beta2);
+//     sb2.add_inplace_squared(db2, beta2_denom);
+
+//     // Bias correction
+//     vW1.scale_inplace(v_correction);
+//     vW2.scale_inplace(v_correction);
+//     vb1.scale_inplace(v_correction);
+//     vb2.scale_inplace(v_correction);
+
+//     sW1.scale_inplace(s_correction);
+//     sW2.scale_inplace(s_correction);
+//     sb1.scale_inplace(s_correction);
+//     sb2.scale_inplace(s_correction);
+
+//     // Parameter updates with error checking
+//     update_layer_params(W1, vW1, sW1, lr_corrected, epsilon, &err);
+//     if (checkError(err)) return;
+
+//     update_layer_params(W2, vW2, sW2, lr_corrected, epsilon, &err);
+//     if (checkError(err)) return;
+
+//     update_layer_params(b1, vb1, sb1, lr_corrected, epsilon, &err);
+//     if (checkError(err)) return;
+
+//     update_layer_params(b2, vb2, sb2, lr_corrected, epsilon, &err);
+//     if (checkError(err)) return;
+// }
+
+// Non-destructive helper: param -= lr * m_hat / (sqrt(v_hat)+eps)
 void MLP::update_params(float learning_rate) {
+    static int t = 0;   // timestep (persist across calls)
+    t++;
+
     const float beta1 = 0.9f;
     const float beta2 = 0.999f;
     const float epsilon = 1e-8f;
-    static int t = 0;
-    t++;
 
-    Error err = NO_ERROR;
+    Error err;
 
-    // Precompute factors once
-    const float v_correction = 1.0f / (1.0f - std::pow(beta1, t));
-    const float s_correction = 1.0f / (1.0f - std::pow(beta2, t));
-    const float lr_corrected = learning_rate * v_correction;
-    const float beta1_denom = 1.0f - beta1;
-    const float beta2_denom = 1.0f - beta2;
+    // ---- W1 ----
+    vW1.multiply_scalar_inplace(beta1);
+    vW1.add_inplaceMat(dW1.multiply_scalar(1.0f - beta1));
 
-    // Update first moment (momentum)
-    vW1.scale_inplace(beta1);
-    vW1.add_inplace(dW1, beta1_denom);
-    
-    vW2.scale_inplace(beta1);
-    vW2.add_inplace(dW2, beta1_denom);
-    
-    vb1.scale_inplace(beta1);
-    vb1.add_inplace(db1, beta1_denom);
-    
-    vb2.scale_inplace(beta1);
-    vb2.add_inplace(db2, beta1_denom);
+    sW1.multiply_scalar_inplace(beta2);
+    sW1.add_inplaceMat(dW1.hadamard_product(dW1).multiply_scalar(1.0f - beta2));
 
-    // Update second moment (variance) - using corrected add_inplace_squared
-    sW1.scale_inplace(beta2);
-    sW1.add_inplace_squared(dW1, beta2_denom);
-    
-    sW2.scale_inplace(beta2);
-    sW2.add_inplace_squared(dW2, beta2_denom);
-    
-    sb1.scale_inplace(beta2);
-    sb1.add_inplace_squared(db1, beta2_denom);
-    
-    sb2.scale_inplace(beta2);
-    sb2.add_inplace_squared(db2, beta2_denom);
+    Matrix vW1_hat = vW1.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sW1_hat = sW1.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t)));
 
-    // Bias correction
-    vW1.scale_inplace(v_correction);
-    vW2.scale_inplace(v_correction);
-    vb1.scale_inplace(v_correction);
-    vb2.scale_inplace(v_correction);
+    Matrix denomW1 = sW1_hat.sqrt();
+    denomW1.add_inplace(epsilon);
 
-    sW1.scale_inplace(s_correction);
-    sW2.scale_inplace(s_correction);
-    sb1.scale_inplace(s_correction);
-    sb2.scale_inplace(s_correction);
+    Matrix stepW1 = vW1_hat;
+    stepW1.hadamard_division_inplace(denomW1, &err);
+    stepW1.multiply_scalar_inplace(learning_rate);
 
-    // Parameter updates with error checking
-    update_layer_params(W1, vW1, sW1, lr_corrected, epsilon, &err);
-    if (checkError(err)) return;
+    W1.subtract_inplace_element(stepW1);
 
-    update_layer_params(W2, vW2, sW2, lr_corrected, epsilon, &err);
-    if (checkError(err)) return;
+    // ---- b1 ----
+    vb1.multiply_scalar_inplace(beta1);
+    vb1.add_inplaceMat(db1.multiply_scalar(1.0f - beta1));
 
-    update_layer_params(b1, vb1, sb1, lr_corrected, epsilon, &err);
-    if (checkError(err)) return;
+    sb1.multiply_scalar_inplace(beta2);
+    sb1.add_inplaceMat(db1.hadamard_product(db1).multiply_scalar(1.0f - beta2));
 
-    update_layer_params(b2, vb2, sb2, lr_corrected, epsilon, &err);
-    if (checkError(err)) return;
+    Matrix vb1_hat = vb1.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sb1_hat = sb1.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t)));
+
+    Matrix denomB1 = sb1_hat.sqrt();
+    denomB1.add_inplace(epsilon);
+
+    Matrix stepB1 = vb1_hat;
+    stepB1.hadamard_division_inplace(denomB1, &err);
+    stepB1.multiply_scalar_inplace(learning_rate);
+
+    b1.subtract_inplace_element(stepB1);
+
+    // ---- W2 ----
+    vW2.multiply_scalar_inplace(beta1);
+    vW2.add_inplaceMat(dW2.multiply_scalar(1.0f - beta1));
+
+    sW2.multiply_scalar_inplace(beta2);
+    sW2.add_inplaceMat(dW2.hadamard_product(dW2).multiply_scalar(1.0f - beta2));
+
+    Matrix vW2_hat = vW2.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sW2_hat = sW2.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t)));
+
+    Matrix denomW2 = sW2_hat.sqrt();
+    denomW2.add_inplace(epsilon);
+
+    Matrix stepW2 = vW2_hat;
+    stepW2.hadamard_division_inplace(denomW2, &err);
+    stepW2.multiply_scalar_inplace(learning_rate);
+
+    W2.subtract_inplace_element(stepW2);
+
+    // ---- b2 ----
+    vb2.multiply_scalar_inplace(beta1);
+    vb2.add_inplaceMat(db2.multiply_scalar(1.0f - beta1));
+
+    sb2.multiply_scalar_inplace(beta2);
+    sb2.add_inplaceMat(db2.hadamard_product(db2).multiply_scalar(1.0f - beta2));
+
+    Matrix vb2_hat = vb2.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sb2_hat = sb2.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t)));
+
+    Matrix denomB2 = sb2_hat.sqrt();
+    denomB2.add_inplace(epsilon);
+
+    Matrix stepB2 = vb2_hat;
+    stepB2.hadamard_division_inplace(denomB2, &err);
+    stepB2.multiply_scalar_inplace(learning_rate);
+
+    b2.subtract_inplace_element(stepB2);
 }
+
+
 
 
 
