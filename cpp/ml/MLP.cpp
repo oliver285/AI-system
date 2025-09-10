@@ -5,44 +5,62 @@
 #include <cmath>
 
 // float t = 0; // timestep
-
-MLP::MLP(size_t input_size, size_t hidden_size, size_t output_size)
+MLP::MLP(size_t input_size, size_t hidden_size, size_t hidden_size2, size_t output_size)
     : W1(hidden_size, input_size),
       vW1(hidden_size, input_size),
       sW1(hidden_size, input_size),
-      W2(output_size, hidden_size),
-      vW2(output_size, hidden_size),
-      sW2(output_size, hidden_size),
       dW1(hidden_size, input_size),
-      dW2(output_size, hidden_size),
+
+      W2(hidden_size2, hidden_size),
+      vW2(hidden_size2, hidden_size),
+      sW2(hidden_size2, hidden_size),
+      dW2(hidden_size2, hidden_size),
+
+      W3(output_size, hidden_size2),
+      vW3(output_size, hidden_size2),
+      sW3(output_size, hidden_size2),
+      dW3(output_size, hidden_size2),
+
       b1(1, hidden_size),
       vb1(1, hidden_size),
-      sb1(1, hidden_size), // match b1
-      b2(1, output_size),
-      vb2(1, output_size),
-      sb2(1, output_size), // match b2
+      sb1(1, hidden_size),
       db1(1, hidden_size),
-      db2(1, output_size)
+
+      b2(1, hidden_size2),
+      vb2(1, hidden_size2),
+      sb2(1, hidden_size2),
+      db2(1, hidden_size2),
+
+      b3(1, output_size),
+      vb3(1, output_size),
+      sb3(1, output_size),
+      db3(1, output_size)
+
 {
+
     float scale1 = std::sqrt(2.0f / input_size);
     float scale2 = std::sqrt(2.0f / hidden_size);
+    float scale3 = std::sqrt(2.0f / hidden_size2);
 
     W1 = Matrix::random(hidden_size, input_size).multiply_scalar(scale1);
-    W2 = Matrix::random(output_size, hidden_size).multiply_scalar(scale2);
+    W2 = Matrix::random(hidden_size2, hidden_size).multiply_scalar(scale2);
+    W3 = Matrix::random(output_size, hidden_size2).multiply_scalar(scale3);
 
     // Initialize biases to zero
     b1.fill(0.0f);
     b2.fill(0.0f);
+    b3.fill(0.0f);
 
     // Initialize velocities and variances to zero
     vW1.fill(0.0f);
     vW2.fill(0.0f);
+    vW3.fill(0.0f);
     sW1.fill(0.0f);
     sW2.fill(0.0f);
+    sW3.fill(0.0f);
     vb1.fill(0.0f);
     vb2.fill(0.0f);
-    sb1.fill(0.0f);
-    sb2.fill(0.0f);
+    vb3.fill(0.0f);
 }
 
 float MLP::compute_loss(const Matrix &Y, const Matrix &A2)
@@ -95,15 +113,9 @@ bool checkError(Error err)
     }
     return false;
 }
+
 Matrix MLP::forward_prop(const Matrix &X)
 {
-    // Validate input dimensions
-    // if (X.row_count() != input_size) {
-    //     std::cerr << "Input dimension mismatch. Expected: "
-    //               << input_size << ", Got: " << X.row_count() << "\n";
-    //     return Matrix();
-    // }
-
     size_t batch_size = X.col_count();
     if (batch_size == 0)
     {
@@ -113,76 +125,39 @@ Matrix MLP::forward_prop(const Matrix &X)
 
     Error err = NO_ERROR;
 
-    // Layer 1: Z1 = W1 * X + b1
+    // ---- Layer 1 ----
     Z1 = Matrix::multiply(W1, X, &err);
     if (checkError(err))
         return Matrix();
-    // for (size_t j = 0; j < Z1.col_count(); ++j)
-    //     for (size_t i = 0; i < Z1.row_count(); ++i)
-    //         Z1(i, j) += b1(0, i); // broadcast along batch
 
-    // Validate bias dimensions before addition
-    if (Z1.row_count() != b1.col_count())
-    {
-        std::cerr << "Bias dimension mismatch in layer 1. Z1 rows: "
-                  << Z1.row_count() << ", b1 cols: " << b1.col_count() << "\n";
-        return Matrix();
-    }
-
-    // Safe bias addition with bounds checking
     for (size_t j = 0; j < batch_size; ++j)
-    {
         for (size_t i = 0; i < Z1.row_count(); ++i)
-        {
-            float bias_val = b1(0, i, &err);
-            if (checkError(err))
-                return Matrix();
-
-            float &z_val = Z1(i, j, &err);
-            if (checkError(err))
-                return Matrix();
-
-            z_val += bias_val;
-        }
-    }
+            Z1(i, j) += b1(0, i, &err);
 
     A1 = Z1.leaky_RELU();
 
-    // Layer 2: Z2 = W2 * A1 + b2
+    // ---- Layer 2 ----
     Z2 = Matrix::multiply(W2, A1, &err);
     if (checkError(err))
         return Matrix();
-    // for (size_t j = 0; j < Z2.col_count(); ++j)
-    //     for (size_t i = 0; i < Z2.row_count(); ++i)
-    //         Z2(i, j) += b2(0, i);
 
-    // Validate bias dimensions
-    if (Z2.row_count() != b2.col_count())
-    {
-        std::cerr << "Bias dimension mismatch in layer 2. Z2 rows: "
-                  << Z2.row_count() << ", b2 cols: " << b2.col_count() << "\n";
-        return Matrix();
-    }
-
-    // Safe bias addition
     for (size_t j = 0; j < batch_size; ++j)
-    {
         for (size_t i = 0; i < Z2.row_count(); ++i)
-        {
-            float bias_val = b2(0, i, &err);
-            if (checkError(err))
-                return Matrix();
+            Z2(i, j) += b2(0, i, &err);
 
-            float &z_val = Z2(i, j, &err);
-            if (checkError(err))
-                return Matrix();
+    A2 = Z2.leaky_RELU(); // FIX: use hidden activation, not softmax
 
-            z_val += bias_val;
-        }
-    }
+    // ---- Layer 3 (Output) ----
+    Z3 = Matrix::multiply(W3, A2, &err);
+    if (checkError(err))
+        return Matrix();
 
-    A2 = Matrix::softmax(Z2);
-    return A2;
+    for (size_t j = 0; j < batch_size; ++j)
+        for (size_t i = 0; i < Z3.row_count(); ++i)
+            Z3(i, j) += b3(0, i, &err);
+
+    A3 = Matrix::softmax(Z3); // only final layer uses softmax
+    return A3;
 }
 
 Matrix MLP::one_hot(const Matrix &Y, size_t num_classes)
@@ -228,6 +203,27 @@ Matrix MLP::one_hot(const Matrix &Y, size_t num_classes)
 //                 data[i][j] = 0;
 // }
 
+Matrix mean_over_batch(const Matrix &dZ)
+{
+
+    size_t rows = dZ.row_count();
+    size_t batch_size = dZ.col_count();
+
+    Matrix db(1, rows);
+
+    for (size_t i = 0; i < rows; ++i)
+    {
+        float sum = 0.0f;
+        for (size_t j = 0; j < batch_size; ++j)
+        {
+            sum += dZ(i, j); // safe access
+        }
+        db(0, i) = sum / batch_size; // safe assignment
+    }
+
+    return db;
+}
+
 void MLP::back_prop(const Matrix &X, const Matrix &Y)
 {
     Error err = NO_ERROR;
@@ -240,82 +236,51 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
         return;
     }
 
-    // Convert Y to one-hot encoding with error handling
-    Matrix one_hot_Y = one_hot(Y, A2.row_count());
-    if (one_hot_Y.row_count() == 0 || one_hot_Y.col_count() == 0)
-    {
-        std::cerr << "one_hot encoding failed" << std::endl;
-        return;
-    }
+    // ---- Step 1: Output error ----
+    Matrix one_hot_Y = one_hot(Y, A3.row_count()); // FIX: match output layer
+    //  std::cout << "A3: " << A3.row_count() << "x" << A3.col_count()
+    //           << ", one_hot_Y: " << one_hot_Y.row_count() << "x" << one_hot_Y.col_count() << "\n";
+    Matrix dZ3 = A3.subtract(one_hot_Y, &err); // dZ3 = A3 - Y
 
-    // Step 2: dZ2 = A2 - one_hot_Y (use safe subtraction)
-    Matrix dZ2 = A2.subtract(one_hot_Y, &err);
-    if (checkError(err))
-        return;
+    // ---- Step 2: Gradients for W3, b3 ----
+    Matrix A2T = A2.transpose();
+    dW3 = Matrix::multiply(dZ3, A2T, &err);
+    dW3.scale_inplace(1.0f / batch_size);
 
-    // Step 3: dW2 = (dZ2 * A1^T) / batch_size
+    db3 = mean_over_batch(dZ3); // same loop you already wrote
+
+    // ---- Step 3: Backprop to hidden layer 2 ----
+    Matrix W3T = W3.transpose();
+    Matrix dA2 = Matrix::multiply(W3T, dZ3, &err); // error signal
+    Matrix dZ2 = dA2.hadamard_product(Z2.deriv_leaky_RELU(), &err);
+
+    // ---- Step 4: Gradients for W2, b2 ----
     Matrix A1T = A1.transpose();
     dW2 = Matrix::multiply(dZ2, A1T, &err);
-    if (checkError(err))
-        return;
-    dW2.scale_inplace(1.0f / batch_size); // More efficient in-place scaling
+    dW2.scale_inplace(1.0f / batch_size);
 
-    // Step 4: db2 = mean of dZ2 across batch
-    db2 = Matrix(1, dZ2.row_count());
-    float sum;
-    for (size_t i = 0; i < dZ2.row_count(); ++i)
-    {
-         sum = 0.0f;
-        for (size_t j = 0; j < batch_size; ++j)
-        {
-            sum += dZ2(i, j, &err); // Safe access
-            if (checkError(err))
-                return;
-        }
-        db2(0, i, &err) = sum / batch_size; // Safe assignment
-        if (checkError(err))
-            return;
-    }
+    db2 = mean_over_batch(dZ2);
 
-    // Step 5: dZ1 = (W2^T * dZ2) ⊙ leaky_RELU'(Z1)
+    // ---- Step 5: Backprop to hidden layer 1 ----
     Matrix W2T = W2.transpose();
-    Matrix dZ1_linear = Matrix::multiply(W2T, dZ2, &err);
-    if (checkError(err))
-        return;
+    Matrix dA1 = Matrix::multiply(W2T, dZ2, &err);
+    Matrix dZ1 = dA1.hadamard_product(Z1.deriv_leaky_RELU(), &err);
 
-    Matrix dZ1_relu = Z1.deriv_leaky_RELU();
-    Matrix dZ1 = dZ1_linear.hadamard_product(dZ1_relu, &err);
-    if (checkError(err))
-        return;
-
-    // Step 6: dW1 = (dZ1 * X^T) / batch_size
+    // ---- Step 6: Gradients for W1, b1 ----
     Matrix XT = X.transpose();
     dW1 = Matrix::multiply(dZ1, XT, &err);
-    if (checkError(err))
-        return;
-    dW1.scale_inplace(1.0f / batch_size); // In-place scaling
+    dW1.scale_inplace(1.0f / batch_size);
 
-    // Step 7: db1 = mean of dZ1 across batch
-    db1 = Matrix(1, dZ1.row_count());
-    for (size_t i = 0; i < dZ1.row_count(); ++i)
-    {
-        float sum = 0.0f;
-        for (size_t j = 0; j < batch_size; ++j)
-        {
-            sum += dZ1(i, j, &err); // Safe access
-            if (checkError(err))
-                return;
-        }
-        db1(0, i, &err) = sum / batch_size; // Safe assignment
-        if (checkError(err))
-            return;
-    }
+    db1 = mean_over_batch(dZ1);
 
-    float clip = 5.0f;
+    // ---- Step 7: Clip to avoid exploding gradients ----
+    float clip = 1.0f;
     dW1 = dW1.clip(-clip, clip);
     dW2 = dW2.clip(-clip, clip);
+    dW3 = dW3.clip(-clip, clip);
     db1 = db1.clip(-clip, clip);
     db2 = db2.clip(-clip, clip);
+    db3 = db3.clip(-clip, clip);
 }
 // Add gradient diagnostics
 // std::cout << "dZ2 range: " << dZ2.min() << " to " << dZ2.max() << "\n";
@@ -333,10 +298,8 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 // db1 = db1.multiply_scalar(100.0);
 // db2 = db2.multiply_scalar(100.0);
 
-
-
 // // Helper function (keep it inline for performance)
-//  void update_layer_params(Matrix& param, Matrix& v, Matrix& s, 
+//  void update_layer_params(Matrix& param, Matrix& v, Matrix& s,
 //                                float lr_corrected, float epsilon, Error* err) {
 //     s.sqrt_inplace();
 //     s.add_inplace_reg(epsilon);
@@ -365,26 +328,26 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 //     // Update first moment (momentum)
 //     vW1.scale_inplace(beta1);
 //     vW1.add_inplace(dW1, beta1_denom);
-    
+
 //     vW2.scale_inplace(beta1);
 //     vW2.add_inplace(dW2, beta1_denom);
-    
+
 //     vb1.scale_inplace(beta1);
 //     vb1.add_inplace(db1, beta1_denom);
-    
+
 //     vb2.scale_inplace(beta1);
 //     vb2.add_inplace(db2, beta1_denom);
 
 //     // Update second moment (variance) - using corrected add_inplace_squared
 //     sW1.scale_inplace(beta2);
 //     sW1.add_inplace_squared(dW1, beta2_denom);
-    
+
 //     sW2.scale_inplace(beta2);
 //     sW2.add_inplace_squared(dW2, beta2_denom);
-    
+
 //     sb1.scale_inplace(beta2);
 //     sb1.add_inplace_squared(db1, beta2_denom);
-    
+
 //     sb2.scale_inplace(beta2);
 //     sb2.add_inplace_squared(db2, beta2_denom);
 
@@ -414,8 +377,9 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
 // }
 
 // Non-destructive helper: param -= lr * m_hat / (sqrt(v_hat)+eps)
-void MLP::update_params(float learning_rate) {
-    static int t = 0;   // timestep (persist across calls)
+void MLP::update_params(float learning_rate)
+{
+    static int t = 0; // timestep (persist across calls)
     t++;
 
     const float beta1 = 0.9f;
@@ -499,11 +463,45 @@ void MLP::update_params(float learning_rate) {
     stepB2.multiply_scalar_inplace(learning_rate);
 
     b2.subtract_inplace_element(stepB2);
+
+    // ---- W3 ----
+    vW3.multiply_scalar_inplace(beta1);
+    vW3.add_inplaceMat(dW3.multiply_scalar(1.0f - beta1));
+
+    sW3.multiply_scalar_inplace(beta2);
+    sW3.add_inplaceMat(dW3.hadamard_product(dW3).multiply_scalar(1.0f - beta2));
+
+    Matrix vW3_hat = vW3.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sW3_hat = sW3.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t))); // ✅ fixed
+
+    Matrix denomW3 = sW3_hat.sqrt(); // ✅ now correct
+    denomW3.add_inplace(epsilon);
+
+    Matrix stepW3 = vW3_hat;
+    stepW3.hadamard_division_inplace(denomW3, &err);
+    stepW3.multiply_scalar_inplace(learning_rate);
+
+    W3.subtract_inplace_element(stepW3);
+
+    // ---- b3 ----   // ✅ fixed comment
+    vb3.multiply_scalar_inplace(beta1);
+    vb3.add_inplaceMat(db3.multiply_scalar(1.0f - beta1));
+
+    sb3.multiply_scalar_inplace(beta2);
+    sb3.add_inplaceMat(db3.hadamard_product(db3).multiply_scalar(1.0f - beta2));
+
+    Matrix vb3_hat = vb3.multiply_scalar(1.0f / (1.0f - std::pow(beta1, t)));
+    Matrix sb3_hat = sb3.multiply_scalar(1.0f / (1.0f - std::pow(beta2, t)));
+
+    Matrix denomB3 = sb3_hat.sqrt();
+    denomB3.add_inplace(epsilon);
+
+    Matrix stepB3 = vb3_hat; // ✅ fixed (was vb2_hat)
+    stepB3.hadamard_division_inplace(denomB3, &err);
+    stepB3.multiply_scalar_inplace(learning_rate);
+
+    b3.subtract_inplace_element(stepB3);
 }
-
-
-
-
 
 // Matrix MLP::get_predictions(const Matrix& A) {
 //     // A should be a (num_classes, batch_size) matrix of probabilities
@@ -730,16 +728,16 @@ void MLP::gradient_descent(Matrix &X, Matrix &Y, size_t epochs, float learning_r
     X = X.multiply_scalar(1.0f / 255.0f);
 
     float current_lr;
-     float accuracy;
-     float loss;
+    float accuracy;
+    float loss;
     for (size_t epoch = 0; epoch < epochs; ++epoch)
     {
         // Shuffle dataset at the start of each epoch
         shuffle_data(X, Y);
 
         // Forward propagation on the whole dataset
-        Matrix A2 = forward_prop(X);
-        if (A2.row_count() == 0)
+        Matrix A3 = forward_prop(X);
+        if (A3.row_count() == 0)
         {
             std::cerr << "Forward propagation failed at epoch " << epoch << "\n";
             continue;
@@ -753,9 +751,9 @@ void MLP::gradient_descent(Matrix &X, Matrix &Y, size_t epochs, float learning_r
         update_params(current_lr);
 
         // Evaluate epoch performance
-        Matrix predictions = get_predictions(A2);
-         accuracy = get_accuracy(predictions, Y);
-         loss = cross_entropy_loss(A2, Y);
+        Matrix predictions = get_predictions(A3);
+        accuracy = get_accuracy(predictions, Y);
+        loss = cross_entropy_loss(A3, Y);
 
         // std::cout << "Epoch " << epoch
         //           << " | Loss: " << loss
@@ -763,9 +761,9 @@ void MLP::gradient_descent(Matrix &X, Matrix &Y, size_t epochs, float learning_r
         //           << " | LR: " << current_lr
         //           << "\n";
     }
-         std::cout << "Epoch " << epochs
-                  << " | Loss: " << loss
-                  << " | Acc: " << accuracy
-                  << " | LR: " << current_lr
-                  << "\n";
+    std::cout << "Epoch " << epochs
+              << " | Loss: " << loss
+              << " | Acc: " << accuracy
+              << " | LR: " << current_lr
+              << "\n";
 }

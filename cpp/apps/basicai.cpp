@@ -67,9 +67,10 @@ int main() {
         }
 
         // Create MLP
+         const size_t hidden_size2 = 128;
         const size_t hidden_size = 256;
         const size_t output_size = 2;
-        MLP mlp(input_size, hidden_size, output_size);
+        MLP mlp(input_size, hidden_size,hidden_size2, output_size);
 
         const size_t batch_size = 64;
         size_t num_batches = train_size / batch_size + (train_size % batch_size != 0 ? 1 : 0);
@@ -81,26 +82,26 @@ int main() {
             // Shuffle training data at the start of each epoch
             processor.shuffle_dataset(train_images, train_labels);
 
-            for (size_t b = 0; b < num_batches; ++b) {
-                size_t start = b * batch_size;
-                size_t end = std::min(start + batch_size, train_size);
-                size_t current_batch_size = end - start;
 
-                // Get batch
-                Matrix batch_images(current_batch_size, input_size);
-                Matrix batch_labels(1, current_batch_size);
-                for (size_t i = 0; i < current_batch_size; ++i) {
-                    for (size_t j = 0; j < input_size; ++j)
-                        batch_images(i, j) = train_images(start + i, j);
-                    batch_labels(0, i) = train_labels(start + i, 0);  // Fixed indexing
-                }
+     for (size_t start = 0; start < train_size; start += batch_size) {
+    size_t current_batch_size = std::min(batch_size, train_size - start);
 
-                // Train on batch - DON'T call gradient_descent, do the steps manually
-                Matrix batch_images_T = batch_images.transpose();
-                Matrix batch_output = mlp.forward_prop(batch_images_T);
-                mlp.back_prop(batch_images_T, batch_labels);
-                mlp.update_params(0.01f);
-            }
+    Matrix batch_images(current_batch_size, input_size);
+    Matrix batch_labels(current_batch_size, 1);
+
+    for (size_t i = 0; i < current_batch_size; ++i) {
+        for (size_t j = 0; j < input_size; ++j)
+            batch_images(i, j) = train_images(start + i, j);
+        batch_labels(i, 0) = train_labels(start + i, 0);
+    }
+
+    // Train step
+    Matrix batch_images_T = batch_images.transpose();
+    Matrix batch_output = mlp.forward_prop(batch_images_T);
+    mlp.back_prop(batch_images_T, batch_labels.transpose()); // depends on your implementation
+    mlp.update_params(0.01f);
+}
+
 
             // Evaluate training performance
             Matrix train_output = mlp.forward_prop(train_images.transpose());
@@ -128,7 +129,6 @@ int main() {
                           << " | Test Acc: " << test_acc << "\n";
             }
         }
-
     } catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << "\n";
         return 1;

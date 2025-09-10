@@ -13,18 +13,20 @@ class MLP
 {
 private:
     // Weights, biases, gradients, and velocities (all float)
-    Matrix W1, vW1, vW1_hat, W2, vW2, vW2_hat, sW1, sW1_hat, sW2, sW2_hat;
-    Matrix dW1, dW2;
-    Matrix b1, vb1, vb1_hat, sb1, sb1_hat, b2, vb2, vb2_hat, sb2, sb2_hat;
-    Matrix db1, db2;
+    Matrix W1, vW1, vW1_hat, W2, vW2, vW2_hat, sW1, sW1_hat, sW2, sW2_hat,W3, vW3, vW3_hat, sW3, sW3_hat;
+    Matrix dW1, dW2,dW3;
+    Matrix b1, vb1, vb1_hat, sb1, sb1_hat, b2, vb2, vb2_hat, sb2, sb2_hat, b3, vb3, vb3_hat, sb3, sb3_hat;
+    Matrix db1, db2,db3;
 
     // Activations and intermediates
     Matrix Z1, A1, dZ1;
     Matrix Z2, A2, dZ2;
+    Matrix Z3, A3, dZ3;
+    float hiddensize2;
 
 public:
     // Constructor
-    MLP(size_t input_size, size_t hidden_size, size_t output_size);
+    MLP(size_t input_size, size_t hidden_size,size_t hidden_size2, size_t output_size);
 
     // Core operations
     Matrix forward_prop(const Matrix &X);

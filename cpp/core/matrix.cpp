@@ -589,10 +589,34 @@ void Matrix::add_inplaceMat(const Matrix& other){
     for (size_t i = 0; i < data.size(); ++i) {
         data[i] +=other.data[i]; // Correct: add squared gradients
     }
-}
-        
+
    
-    
+}
+
+
+// Matrix Matrix::mean_over_batch(const Matrix& dZ) {
+
+  
+//     size_t rows = dZ.row_count();
+//     size_t batch_size = dZ.col_count();
+
+//     Matrix db(1, rows);
+
+//     for (size_t i = 0; i < rows; ++i) {
+//         float sum = 0.0f;
+//         for (size_t j = 0; j < batch_size; ++j) {
+//             sum += dZ(i, j); // safe access
+       
+//         }
+//         db(0, i) = sum / batch_size; // safe assignment
+   
+//     }
+
+//     return db;
+// }
+
+
+
   
     
     // int main() {

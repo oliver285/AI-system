@@ -66,6 +66,8 @@ public:
     float min() const;
     float max() const;
     float mean() const;
+    Matrix mean_over_batch(const Matrix& dZ1);
+    // void mean_over_batch_inplace(const Matrix& dZ1);
     Matrix& scale(float factor);
     static Matrix sum_cols(const Matrix& A);
     Matrix rowwise_mean() const;
@@ -88,6 +90,7 @@ void subtract_inplace_element(const Matrix& other);
 void hadamard_division_inplace(const Matrix& A, Error* err);
 void add_inplace_squared(const Matrix& other ,float val);
 void add_inplaceMat(const Matrix& other);
+
 };
 
 #endif // MATRIX_H
