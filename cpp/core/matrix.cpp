@@ -593,6 +593,21 @@ void Matrix::add_inplaceMat(const Matrix& other){
    
 }
 
+Matrix rot180(const Matrix& mat) {
+    size_t rows = mat.row_count();
+    size_t cols = mat.col_count();
+    Matrix rotated(rows, cols);
+    
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; ++j) {
+            // 180° rotation: map (i,j) to (rows-1-i, cols-1-j)
+            rotated(i, j) = mat(rows - 1 - i, cols - 1 - j);
+        }
+    }
+    
+    return rotated;
+}
+
 
 // Matrix Matrix::mean_over_batch(const Matrix& dZ) {
 

@@ -1,6 +1,7 @@
 #include "../core/matrix.h"
 #include "../ml/MLP.h"
 #include "../vision/image_processor.h"
+#include <fstream>
 
 int main() {
     try {
@@ -13,6 +14,9 @@ int main() {
         Matrix cracked_labels = processor.load_labels("../datasets/testing/data/Cracked", 1);
         Matrix noncracked_images = processor.load_dataset("../datasets/testing/data/NonCracked");
         Matrix noncracked_labels = processor.load_labels("../datasets/testing/data/NonCracked", 0);
+         std::vector<float> train_accs, test_accs;
+    std::vector<float> train_losses, test_losses;
+
 
         // Validate dataset sizes
         if (cracked_images.col_count() != input_size || noncracked_images.col_count() != input_size) {
@@ -112,23 +116,40 @@ int main() {
             float train_acc = mlp.get_accuracy(train_preds, train_labels_row);
             float train_loss = mlp.cross_entropy_loss(train_output, train_labels_row);
 
+        train_accs.push_back(train_acc);
+        train_losses.push_back(train_loss);
+
             std::cout << "Epoch " << epoch + 1
                       << " | Train Loss: " << train_loss
                       << " | Train Acc: " << train_acc << "\n";
 
             // Optional: Evaluate on test set periodically
-            if ((epoch + 1) % 10 == 0) {
+            // if ((epoch + 1) % 10 == 0) {
                 Matrix test_output = mlp.forward_prop(test_images.transpose());
                 Matrix test_preds = mlp.get_predictions(test_output);
                 Matrix test_labels_row = test_labels.transpose();
                 float test_acc = mlp.get_accuracy(test_preds, test_labels_row);
                 float test_loss = mlp.cross_entropy_loss(test_output, test_labels_row);
+         test_accs.push_back(test_acc);
+        test_losses.push_back(test_loss);
                 
                 std::cout << "Epoch " << epoch + 1
                           << " | Test Loss: " << test_loss
                           << " | Test Acc: " << test_acc << "\n";
-            }
+            // }
         }
+    // --- Save to CSV ---
+    std::ofstream file("training_log.csv");
+    file << "epoch,train_acc,test_acc,train_loss,test_loss\n";
+    for (size_t i = 0; i < train_accs.size(); ++i) {
+        file << i+1 << ","
+             << train_accs[i] << ","
+             << test_accs[i] << ","
+             << train_losses[i] << ","
+             << test_losses[i] << "\n";
+    }
+    file.close();
+
     } catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << "\n";
         return 1;
