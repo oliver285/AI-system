@@ -743,6 +743,16 @@ float Matrix::Discrete_Convolution(const Matrix &I, const Matrix &K, size_t i, s
 
     return output;
 }
+//  void Matrix::rot180(){
+
+//     for (size_t i = 0; i < rows; ++i) {
+//         for (size_t j = 0; j < cols; ++j) {
+//             // 180° rotation: map (i,j) to (rows-1-i, cols-1-j)
+//             data[i][j] = mat(rows - 1 - i, cols - 1 - j);
+//         }
+//     }
+
+//  }
 
 Matrix rot180(const Matrix& mat) {
     size_t rows = mat.row_count();

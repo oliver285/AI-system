@@ -362,26 +362,60 @@ std::vector<Matrix> CNN::apply_avg_pooling_forward(const std::vector<Matrix>& in
 }
 
 
+
+    // std::vector<Matrix> layer_output;
+    //     size_t output_chs = conv_filter_counts[layer];
+    //     size_t input_chs = current.size();
+
+    //     // For each output channel
+    //     for (size_t out_ch = 0; out_ch < output_chs; ++out_ch)
+    //     {
+    //         Matrix feature_map;
+    //         bool first_channel = true;
+
+    //         // Convolve across input channels
+    //         for (size_t in_ch = 0; in_ch < input_chs; ++in_ch)
+    //         {
+    //             Matrix conv_result = Matrix::Convolve2D(
+    //                 current[in_ch],
+    //                 conv_weights[layer][out_ch][in_ch],
+    //                 strides[layer],
+    //                 err);
+
 std::vector<Matrix> CNN::backward_conv_input(const std::vector<Matrix>& dL_dOutput,
                                            size_t layer_idx, Error* err) {
-    // Compute ∂L/∂X for previous layer
-    // Uses full convolution with rotated filters
-
-    std::vector<Matrix> dL_dinput;
-for(size_t i=0;i< dL_dOutput.size();i++){
-
-Matrix de_L=dL_dOutput[i];
-
-size_t rows = de_L.row_count();
-size_t cols = de_L.col_count();
-
-
-
-
-}
-
-
-
+    size_t output_chs = conv_filter_counts[layer_idx];
+    size_t input_chs = (layer_idx == 0) ? input_channels : conv_filter_counts[layer_idx - 1];
+    
+    std::vector<Matrix> dL_dInput(input_chs);
+    
+    // Initialize each input channel gradient
+    for (size_t in_ch = 0; in_ch < input_chs; ++in_ch) {
+        dL_dInput[in_ch] = Matrix(layer_inputs[layer_idx][in_ch].row_count(),
+                                 layer_inputs[layer_idx][in_ch].col_count());
+        dL_dInput[in_ch].fill(0.0f);
+    }
+    
+    // Accumulate gradients
+    for (size_t in_ch = 0; in_ch < input_chs; ++in_ch) {
+        Matrix& input_grad = dL_dInput[in_ch];
+        
+        for (size_t out_ch = 0; out_ch < output_chs; ++out_ch) {
+            Matrix rotated_filter = rot180(conv_weights[layer_idx][out_ch][in_ch]);
+            Matrix conv_grad = Matrix::Convolve2D(dL_dOutput[out_ch], rotated_filter, 1, err);
+            
+            if (err && *err != NO_ERROR) return {};
+            
+            // Element-wise addition
+            for (size_t i = 0; i < input_grad.row_count(); ++i) {
+                for (size_t j = 0; j < input_grad.col_count(); ++j) {
+                    input_grad(i, j) += conv_grad(i, j);
+                }
+            }
+        }
+    }
+    
+    return dL_dInput;
 }
 
 std::vector<std::vector<Matrix>> CNN::backward_conv_weights(const std::vector<Matrix>& dL_dOutput,

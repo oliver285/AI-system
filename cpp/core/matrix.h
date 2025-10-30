@@ -110,7 +110,7 @@ float Discrete_Convolution(const Matrix& I, const Matrix& K,size_t i, size_t j, 
         size_t stride, Error* err = nullptr);
 
 
-//  Matrix rot180(const Matrix& mat);
+//  void rot180();
 
 };
  Matrix rot180(const Matrix& mat);
