@@ -66,8 +66,6 @@ public:
     float min() const;
     float max() const;
     float mean() const;
-    Matrix mean_over_batch(const Matrix& dZ1);
-    // void mean_over_batch_inplace(const Matrix& dZ1);
     Matrix& scale(float factor);
     static Matrix sum_cols(const Matrix& A);
     Matrix rowwise_mean() const;
@@ -90,7 +88,30 @@ void subtract_inplace_element(const Matrix& other);
 void hadamard_division_inplace(const Matrix& A, Error* err);
 void add_inplace_squared(const Matrix& other ,float val);
 void add_inplaceMat(const Matrix& other);
-Matrix rot180(const Matrix& mat);
-};
 
+
+//CNN STUFF
+    static Matrix Convolve2D(const Matrix& input, const Matrix& kernel, 
+                            size_t stride = 1, Error* err = nullptr);
+    
+    // Max pooling
+    static Matrix MaxPool2D(const Matrix& input, size_t pool_size, 
+                           size_t stride, Error* err = nullptr);
+    
+    // Average pooling  
+    static Matrix AveragePool2D(const Matrix& input, size_t pool_size,
+                               size_t stride, Error* err = nullptr);
+
+float Discrete_Convolution(const Matrix& I, const Matrix& K,size_t i, size_t j, Error* err= nullptr) const;
+    // For handling multiple channels (simplified)
+    static std::vector<Matrix> ConvolveMultiChannel(
+        const std::vector<Matrix>& input_channels,
+        const std::vector<Matrix>& kernels,
+        size_t stride, Error* err = nullptr);
+
+
+//  Matrix rot180(const Matrix& mat);
+
+};
+ Matrix rot180(const Matrix& mat);
 #endif // MATRIX_H
