@@ -480,52 +480,63 @@ std::vector<Matrix> CNN::backward_conv_input(const std::vector<Matrix> &dL_dOutp
 
 //         }
 // }
-std::vector<std::vector<Matrix>> CNN::backward_conv_weights(const std::vector<Matrix> &dL_dOutput,
+ConvGradients CNN::backward_conv_weights(const std::vector<Matrix> &dL_dOutput,
                                                             const std::vector<Matrix> &layer_input,
-                                                            size_t layer_idx, Error *err) {
-    
+                                                            size_t layer_idx, Error *err)
+{
+
     size_t output_chs = conv_filter_counts[layer_idx];
-    size_t input_chs = layer_input.size(); // More reliable
-    
+    size_t input_chs = layer_input.size();
+
     // Structure: result[0] = weight_grads, result[1] = bias_grads
-    std::vector<std::vector<Matrix>> result(2);
-    std::vector<Matrix>& weight_grads = result[0];
-    std::vector<Matrix>& bias_grads = result[1];
-    
-    // Initialize weight gradients structure
-    weight_grads.resize(output_chs);
-    for (size_t out_ch = 0; out_ch < output_chs; ++out_ch) {
-        weight_grads[out_ch].resize(input_chs);
+    ConvGradients result;
+
+    // 1. WEIGHT GRADIENTS: Same structure as conv_weights[layer_idx]
+    //    weight_grads[out_ch][in_ch] = gradient for filter connecting in_ch to out_ch
+  std::vector<std::vector<Matrix>> weight_grads(output_chs);
+for (size_t out_ch = 0; out_ch < output_chs; ++out_ch) {
+    weight_grads[out_ch].resize(input_chs);
+    for (size_t in_ch = 0; in_ch < input_chs; ++in_ch) {
+        weight_grads[out_ch][in_ch] = Matrix::Convolve2D(
+            layer_input[in_ch],
+            dL_dOutput[out_ch],
+            1,  // optional if your function requires it
+            err
+        );
+
+        if (err && *err != NO_ERROR)
+            return {};
     }
-    
-    // Compute weight gradients
-    for (size_t out_ch = 0; out_ch < output_chs; ++out_ch) {
-        for (size_t in_ch = 0; in_ch < input_chs; ++in_ch) {
-            weight_grads[out_ch][in_ch] = Matrix::Convolve2D(
-                layer_input[in_ch],
-                dL_dOutput[out_ch], 
-                1, err);
-            
-            if (err && *err != NO_ERROR) return {};
-        }
-    }
-    
-    // Compute bias gradients
+}
+
+result.weight_grads = weight_grads;
+
+// result.push_back(weight_grads);
+
+
+    // 2. BIAS GRADIENTS: One 1x1 matrix per output channel
+    std::vector<Matrix> bias_grads;
     bias_grads.resize(output_chs);
-    for (size_t out_ch = 0; out_ch < output_chs; ++out_ch) {
+
+    for (size_t out_ch = 0; out_ch < output_chs; ++out_ch)
+    {
         bias_grads[out_ch] = Matrix(1, 1);
         float sum = 0.0f;
-        
-        const Matrix& grad = dL_dOutput[out_ch];
-        for (size_t i = 0; i < grad.row_count(); ++i) {
-            for (size_t j = 0; j < grad.col_count(); ++j) {
+        // Sum all elements in this output channel's gradient
+        const Matrix &grad = dL_dOutput[out_ch];
+        for (size_t i = 0; i < grad.row_count(); ++i)
+        {
+            for (size_t j = 0; j < grad.col_count(); ++j)
+            {
                 sum += grad(i, j);
             }
         }
-        
+
         bias_grads[out_ch](0, 0) = sum;
     }
-    
+
+    result.bias_grads = bias_grads;
+
     return result;
 }
 
@@ -533,5 +544,6 @@ std::vector<std::vector<Matrix>> backward(const std::vector<Matrix> &input,
                                           const std::vector<Matrix> &dL_doutput,
                                           float learning_rate, Error *err)
 {
+
 
 }

@@ -5,6 +5,13 @@
 #include "../core/matrix.h"
 #include <vector>
 
+
+struct ConvGradients {
+    std::vector<std::vector<Matrix>> weight_grads; // [out_ch][in_ch]
+    std::vector<Matrix> bias_grads;                // [out_ch]
+};
+
+
 class CNN {
 private:
     size_t input_channels;
@@ -60,7 +67,7 @@ std::vector<Matrix> backward_conv_input(const std::vector<Matrix>& dL_dOutput,
                                            size_t layer_idx, Error* err);
     
 
-std::vector<std::vector<Matrix>> backward_conv_weights(const std::vector<Matrix>& dL_dOutput,
+ConvGradients backward_conv_weights(const std::vector<Matrix>& dL_dOutput,
                                                           const std::vector<Matrix>& layer_input,
                                                           size_t layer_idx, Error* err);
     // Getters
