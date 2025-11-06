@@ -561,7 +561,7 @@ std::vector<std::vector<Matrix>> CNN::backward(const std::vector<Matrix> &input,
         // ReLU’(x) = 1 if x > 0 else 0
         for (size_t ch = 0; ch < dL_dY.size(); ++ch){
         
-  dL_dY[ch] = layer_output[ch].deriv_RELU();
+  dL_dY[ch] = dL_dY[ch].hadamard_product(layer_output[ch].deriv_RELU());
 }
 
 
@@ -581,7 +581,7 @@ std::vector<std::vector<Matrix>> CNN::backward(const std::vector<Matrix> &input,
             for (size_t in_ch = 0; in_ch < conv_weights[layer][out_ch].size(); ++in_ch)
             {
 
-                Matrix temp1 = grads.weight_grads[out_ch][in_ch].scale(-learning_rate);
+                // Matrix temp1 = grads.weight_grads[out_ch][in_ch].scale(-learning_rate);
                 conv_weights[layer][out_ch][in_ch].add_inplace(
                     grads.weight_grads[out_ch][in_ch],-learning_rate);
             }

@@ -182,10 +182,10 @@ Matrix MLP::one_hot(const Matrix &Y, size_t num_classes)
             return Matrix(); // Not an integer
         }
 
-        const int class_idx = static_cast<int>(std::round(val));
+        const size_t class_idx = static_cast<size_t>(std::round(val));
 
         // 2. Validate class index range
-        if (class_idx < 0 || class_idx >= static_cast<int>(num_classes))
+        if (class_idx < 0.f || class_idx >= (num_classes))
         {
             return Matrix(); // Out of range
         }
