@@ -540,10 +540,71 @@ result.weight_grads = weight_grads;
     return result;
 }
 
-std::vector<std::vector<Matrix>> backward(const std::vector<Matrix> &input,
-                                          const std::vector<Matrix> &dL_doutput,
+std::vector<std::vector<Matrix>> CNN::backward(const std::vector<Matrix> &input,
+                                          const std::vector<Matrix> &dL_dOutput,
                                           float learning_rate, Error *err)
 {
+ // Store gradients for all layers
+    std::vector<std::vector<Matrix>> layer_dInputs;
 
+    // Gradient coming from the output (initially dL/dOutput)
+    std::vector<Matrix> dL_dY = dL_dOutput;
 
+ // Process through each convolutional layer
+    for (size_t layer = 0; layer < conv_filter_sizes.size(); ++layer)
+    {
+       // Get stored activations (from forward)
+        const auto &layer_input = layer_inputs[layer];
+        const auto &layer_output = layer_outputs[layer];
+
+        // === Step 1: Backprop through activation ===
+        // ReLU’(x) = 1 if x > 0 else 0
+        for (size_t ch = 0; ch < dL_dY.size(); ++ch){
+        
+  dL_dY[ch] = layer_output[ch].deriv_RELU();
 }
+
+
+      // === Step 2: Compute weight and bias gradients ===
+        ConvGradients grads = backward_conv_weights(dL_dY, layer_input, layer, err);
+        if (err && *err != NO_ERROR)
+            return {};
+
+
+     // === Step 3: Compute input gradients for previous layer ===
+        std::vector<Matrix> dL_dX = backward_conv_input(dL_dY, layer, err);
+        if (err && *err != NO_ERROR)
+            return {};
+// === Step 4: Update weights ===
+        for (size_t out_ch = 0; out_ch < conv_weights[layer].size(); ++out_ch)
+        {
+            for (size_t in_ch = 0; in_ch < conv_weights[layer][out_ch].size(); ++in_ch)
+            {
+
+                Matrix temp1 = grads.weight_grads[out_ch][in_ch].scale(-learning_rate);
+                conv_weights[layer][out_ch][in_ch].add_inplace(
+                    grads.weight_grads[out_ch][in_ch],-learning_rate);
+            }
+            conv_biases[layer][out_ch].add_inplace(
+                grads.bias_grads[out_ch],-learning_rate);
+        }
+
+        // === Step 5: Pooling backprop if applicable ===
+        if (layer < pool_sizes.size() && pool_sizes[layer] > 1)
+        {
+            dL_dX = apply_avg_pooling_backward(
+                dL_dX, pool_sizes[layer], strides[layer], err);
+        }
+
+        // === Step 6: Pass gradient to next iteration ===
+        dL_dY = dL_dX;
+
+        layer_dInputs.push_back(dL_dX);
+    }
+
+    std::reverse(layer_dInputs.begin(), layer_dInputs.end());
+    return layer_dInputs;
+}
+
+    
+
