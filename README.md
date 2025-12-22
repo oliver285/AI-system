@@ -16,7 +16,7 @@ No external ML frameworks (PyTorch/TensorFlow) — everything implemented manual
 
 ## Features
 - Custom **Matrix** class with operator overloading (addition, multiplication, transpose)
-- Two-layer MLP:
+- Three-layer MLP:
   - He initialization
   - Leaky ReLU hidden activation
   - Softmax output
