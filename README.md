@@ -7,6 +7,19 @@ No external ML frameworks (PyTorch/TensorFlow) — everything implemented manual
   
 *Train (blue) vs Test (orange) accuracy over 100 epochs — reaching ~87% test accuracy*
 
+## Highlights of Custom Implementation
+
+This project is built entirely from scratch for maximum control and embedded readiness:
+
+- **Custom Matrix Class** — Core of the system: manual operator overloading, memory-efficient operations, no external dependencies.  
+  → [View matrix.h / matrix.cpp](cpp/core/matrix.h) (key file — see in-place ops, transpose, multiplication)
+
+- **MLP from Scratch** — Forward/backward pass, momentum optimizer, adaptive LR.  
+  → [View mlp.h / mlp.cpp](cpp/ml/mlp.h)
+
+- **Image Pipeline** — OpenCV loading → preprocess → flatten to custom matrix format.  
+  → [View image_processor.h/cpp](cpp/vision/image_processor.h)
+
 ## Key Metrics
 - **Test Accuracy**: 87.2% (peak)
 - **Train Accuracy**: 88.5% (peak)
