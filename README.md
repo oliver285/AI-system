@@ -3,7 +3,8 @@
 Lightweight, **from-scratch** machine learning pipeline for classifying concrete surface cracks in grayscale images.  
 No external ML frameworks (PyTorch/TensorFlow) — everything implemented manually for transparency, low overhead, and embedded readiness.
 
-![Training Accuracy](training_accuracy.png)  
+![Training Accuracy]<img width="1280" height="960" alt="accuracy_vs_epoch" src="https://github.com/user-attachments/assets/3f53c159-2ec5-41cb-bcdb-0617c746c952" />
+  
 *Train (blue) vs Test (orange) accuracy over 100 epochs — reaching ~87% test accuracy*
 
 ## Key Metrics
