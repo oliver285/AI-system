@@ -21,8 +21,8 @@ This project is built entirely from scratch for maximum control and embedded rea
 - **Custom Matrix Class** — Core engine: manual operator overloading, in-place ops, memory-efficient.  
   → [View matrix.h / matrix.cpp](cpp/core/matrix.h)
 
-- **MLP Classifier** — Multi-layer perceptron with momentum optimizer and adaptive learning rate.  
-  → [View mlp.h / mlp.cpp](cpp/ml/MLP.h)
+- **MLP Classifier** — Three-layer perceptron with **Adam optimizer** (bias-corrected first/second moments), Leaky ReLU activation, momentum, and adaptive learning rate decay.  
+  → [View mlp.h / mlp.cpp](cpp/ml/MLP.h) (key file — see full Adam implementation, backprop, softmax/cross-entropy)
 
 - **Image Pipeline** — OpenCV loading → preprocess → flatten to custom matrix format.  
   → [View image_processor.h/cpp](cpp/vision/image_processor.h)
