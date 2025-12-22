@@ -15,7 +15,7 @@ This project is built entirely from scratch for maximum control and embedded rea
   → [View matrix.h / matrix.cpp](cpp/core/matrix.h) (key file — see in-place ops, transpose, multiplication)
 
 - **MLP from Scratch** — Forward/backward pass, momentum optimizer, adaptive LR.  
-  → [View mlp.h / mlp.cpp](cpp/ml/mlp.h)
+  → [View mlp.h / mlp.cpp](cpp/ml/MLP.h)
 
 - **Image Pipeline** — OpenCV loading → preprocess → flatten to custom matrix format.  
   → [View image_processor.h/cpp](cpp/vision/image_processor.h)
