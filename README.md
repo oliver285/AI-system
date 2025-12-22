@@ -37,7 +37,7 @@ This project is built entirely from scratch for maximum control and embedded rea
   - Softmax output
   - Cross-entropy loss
 - Training loop with:
-  - Momentum optimizer
+  - Adam optimizer
   - Adaptive learning rate decay
   - Early stopping
 - Image pipeline:
