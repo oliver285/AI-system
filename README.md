@@ -11,10 +11,6 @@ No external ML frameworks (PyTorch/TensorFlow) — everything implemented manual
 
 This project is built entirely from scratch for maximum control and embedded readiness:
 
-## Highlights of Custom Implementation
-
-This project is built entirely from scratch for maximum control and embedded readiness:
-
 - **Custom Convolutional Neural Network** — Full forward/backward pass with convolution, pooling, ReLU, and gradient computation.  
   → [View cnn.h / cnn.cpp](cpp/CNN/cnn.h) (key file — see Convolve2D, pooling, backprop)
 
