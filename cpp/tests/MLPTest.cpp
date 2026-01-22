@@ -3,7 +3,7 @@
 #include"../core/matrix.h"
 #include"../ml/MLP.h"
 #include <cmath>
-
+#include <chrono>
 class MLPTest : public ::testing::Test {
 protected:
     size_t input_size = 2;
@@ -376,6 +376,22 @@ TEST_F(MLPTest, PredictionAccuracy) {
     float accuracy = mlp.get_accuracy(predictions, Y);
     EXPECT_GE(accuracy, 0.0);
     EXPECT_LE(accuracy, 1.0);
+}
+
+TEST_F(MLPTest, BackpropPerformance) {
+    Matrix X=Matrix::random(input_size, 1000);  // Large batch
+    Matrix Y=Matrix::random(1, 1000);
+   
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 100; ++i) {
+        mlp.forward_prop(X);
+        mlp.back_prop(X, Y);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Backprop 100 iterations: " << duration.count() << "ms" << std::endl;
 }
 
 // int main(int argc, char **argv) {
