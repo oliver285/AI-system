@@ -240,7 +240,7 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
     Matrix one_hot_Y = one_hot(Y, A3.row_count()); // FIX: match output layer
     //  std::cout << "A3: " << A3.row_count() << "x" << A3.col_count()
     //           << ", one_hot_Y: " << one_hot_Y.row_count() << "x" << one_hot_Y.col_count() << "\n";
-    Matrix dZ3 = A3.subtract(one_hot_Y, &err); // dZ3 = A3 - Y
+     dZ3 = A3.subtract(one_hot_Y, &err); // dZ3 = A3 - Y
 
     // ---- Step 2: Gradients for W3, b3 ----
     Matrix A2T = A2.transpose();
@@ -252,7 +252,7 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
     // ---- Step 3: Backprop to hidden layer 2 ----
     Matrix W3T = W3.transpose();
     Matrix dA2 = Matrix::multiply(W3T, dZ3, &err); // error signal
-    Matrix dZ2 = dA2.hadamard_product(Z2.deriv_leaky_RELU(), &err);
+     dZ2 = dA2.hadamard_product(Z2.deriv_leaky_RELU(), &err);
 
     // ---- Step 4: Gradients for W2, b2 ----
     Matrix A1T = A1.transpose();
@@ -264,7 +264,7 @@ void MLP::back_prop(const Matrix &X, const Matrix &Y)
     // ---- Step 5: Backprop to hidden layer 1 ----
     Matrix W2T = W2.transpose();
     Matrix dA1 = Matrix::multiply(W2T, dZ2, &err);
-    Matrix dZ1 = dA1.hadamard_product(Z1.deriv_leaky_RELU(), &err);
+     dZ1 = dA1.hadamard_product(Z1.deriv_leaky_RELU(), &err);
 
     // ---- Step 6: Gradients for W1, b1 ----
     Matrix XT = X.transpose();

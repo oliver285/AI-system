@@ -34,40 +34,69 @@ public:
     void update_params(float learning_rate);
     float compute_loss(const Matrix &Y, const Matrix &A2);
 
-    // Accessors
-    const Matrix &get_A1() const { return A1; }
-    const Matrix &get_A2() const { return A2; }
-    const Matrix &get_dZ2() const { return dZ2; }
-    const Matrix &get_dW1() const { return dW1; }
-    const Matrix &get_db1() const { return db1; }
-    const Matrix &get_dW2() const { return dW2; }
-    const Matrix &get_db2() const { return db2; }
-    const Matrix &get_W1() const { return W1; }
-    const Matrix &get_b1() const { return b1; }
-    const Matrix &get_W2() const { return W2; }
-    const Matrix &get_b2() const { return b2; }
-    const Matrix &get_vW1() const { return vW1; }
-    const Matrix &get_vb1() const { return vb1; }
-    const Matrix &get_vW2() const { return vW2; }
-    const Matrix &get_vb2() const { return vb2; }
+   // Accessors
+const Matrix& get_A1() const { return A1; }
+const Matrix& get_A2() const { return A2; }
+const Matrix& get_A3() const { return A3; }
+const Matrix& get_Z1() const { return Z1; }
+const Matrix& get_Z2() const { return Z2; }
+const Matrix& get_Z3() const { return Z3; }
+const Matrix& get_dZ1() const { return dZ1; }
+const Matrix& get_dZ2() const { return dZ2; }
+const Matrix& get_dZ3() const { return dZ3; }
+const Matrix& get_dW1() const { return dW1; }
+const Matrix& get_db1() const { return db1; }
+const Matrix& get_dW2() const { return dW2; }
+const Matrix& get_db2() const { return db2; }
+const Matrix& get_dW3() const { return dW3; }
+const Matrix& get_db3() const { return db3; }
+const Matrix& get_W1() const { return W1; }
+const Matrix& get_b1() const { return b1; }
+const Matrix& get_W2() const { return W2; }
+const Matrix& get_b2() const { return b2; }
+const Matrix& get_W3() const { return W3; }
+const Matrix& get_b3() const { return b3; }
+const Matrix& get_vW1() const { return vW1; }
+const Matrix& get_vb1() const { return vb1; }
+const Matrix& get_vW2() const { return vW2; }
+const Matrix& get_vb2() const { return vb2; }
+const Matrix& get_vW3() const { return vW3; }
+const Matrix& get_vb3() const { return vb3; }
+const Matrix& get_sW1() const { return sW1; }
+const Matrix& get_sb1() const { return sb1; }
+const Matrix& get_sW2() const { return sW2; }
+const Matrix& get_sb2() const { return sb2; }
+const Matrix& get_sW3() const { return sW3; }
+const Matrix& get_sb3() const { return sb3; }
 
-    // Setters for testing and parameter updates
-    void set_W1(const Matrix &weights) { W1 = weights; }
-    void set_W2(const Matrix &weights) { W2 = weights; }
-    void set_b1(const Matrix &bias) { b1 = bias; }
-    void set_b2(const Matrix &bias) { b2 = bias; }
-    void set_dW1(const Matrix &m) { dW1 = m; }
-    void set_db1(const Matrix &m) { db1 = m; }
-    void set_dW2(const Matrix &m) { dW2 = m; }
-    void set_db2(const Matrix &m) { db2 = m; }
-    void set_vW1(const Matrix &m) { vW1 = m; }
-    void set_vb1(const Matrix &m) { vb1 = m; }
-    void set_vW2(const Matrix &m) { vW2 = m; }
-    void set_vb2(const Matrix &m) { vb2 = m; }
-    void set_sW1(const Matrix &m) { sW1 = m; }
-    void set_sW2(const Matrix &m) { sW2 = m; }
-    void set_sb1(const Matrix &m) { sb1 = m; }
-    void set_sb2(const Matrix &m) { sb2 = m; };
+// Setters for testing and parameter updates
+void set_W1(const Matrix& weights) { W1 = weights; }
+void set_W2(const Matrix& weights) { W2 = weights; }
+void set_W3(const Matrix& weights) { W3 = weights; }
+void set_b1(const Matrix& bias) { b1 = bias; }
+void set_b2(const Matrix& bias) { b2 = bias; }
+void set_b3(const Matrix& bias) { b3 = bias; }
+void set_dW1(const Matrix& m) { dW1 = m; }
+void set_db1(const Matrix& m) { db1 = m; }
+void set_dW2(const Matrix& m) { dW2 = m; }
+void set_db2(const Matrix& m) { db2 = m; }
+void set_dW3(const Matrix& m) { dW3 = m; }
+void set_db3(const Matrix& m) { db3 = m; }
+void set_dZ1(const Matrix& m) { dZ1 = m; }
+void set_dZ2(const Matrix& m) { dZ2 = m; }
+void set_dZ3(const Matrix& m) { dZ3 = m; }
+void set_vW1(const Matrix& m) { vW1 = m; }
+void set_vb1(const Matrix& m) { vb1 = m; }
+void set_vW2(const Matrix& m) { vW2 = m; }
+void set_vb2(const Matrix& m) { vb2 = m; }
+void set_vW3(const Matrix& m) { vW3 = m; }
+void set_vb3(const Matrix& m) { vb3 = m; }
+void set_sW1(const Matrix& m) { sW1 = m; }
+void set_sb1(const Matrix& m) { sb1 = m; }
+void set_sW2(const Matrix& m) { sW2 = m; }
+void set_sb2(const Matrix& m) { sb2 = m; }
+void set_sW3(const Matrix& m) { sW3 = m; }
+void set_sb3(const Matrix& m) { sb3 = m; }
 
 
     // Utility functions
